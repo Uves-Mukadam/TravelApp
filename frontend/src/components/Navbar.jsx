@@ -21,8 +21,18 @@ export default function Navbar() {
               `nav-link ${isActive ? "active" : ""}`
             }
             id="nav-dashboard"
+            end
           >
             Dashboard
+          </NavLink>
+          <NavLink
+            to="/trips"
+            className={({ isActive }) =>
+              `nav-link ${isActive ? "active" : ""}`
+            }
+            id="nav-trips"
+          >
+            Trips
           </NavLink>
           <NavLink
             to="/simulator"
