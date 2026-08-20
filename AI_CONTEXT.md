@@ -85,13 +85,13 @@ Algorand Testnet
 - [x] **Trip-connected Simulator**: Dropdown allows targeting active database trips and pre-fills coordinate presets automatically.
 - [x] **Action Approval Interface**: Approve AI actions requiring consent (triggers x402 roadside payments) from the Dashboard.
 - [x] **Algorand Testnet Dispenser Shortcut**: Copy address button and dispenser link integrated on details card.
+- [x] **n8n Workflow Integration**: Full n8n workflow import config created for visual orchestration.
+- [x] **Firebase Real-time Listeners**: Renders changes reactive on dashboard incident feed and trip payments table.
 
 ### IN PROGRESS
 - (none currently)
 
 ### PLANNED
-- [ ] n8n workflow integration (replace Express stand-in)
-- [ ] Firebase Realtime Database / Firestore real-time listeners on frontend (currently polling)
 - [ ] Emergency contact notification system
 - [ ] User authentication
 - [ ] Historical incident analysis
@@ -134,7 +134,7 @@ Algorand Testnet
 - **External APIs**: Gemini API
 - **Outputs**: Risk assessment with incident ID
 - **Error handling**: Fallback to mock analysis if Gemini fails
-- **Current status**: Simulated by Express.js backend (`backend/server.js`)
+- **Current status**: ✅ IMPLEMENTED (Import template in `n8n/workflows/telemetry_risk_analysis.json`; simulated by Express backend)
 
 ---
 

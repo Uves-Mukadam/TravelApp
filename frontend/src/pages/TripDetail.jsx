@@ -5,6 +5,7 @@ import MapView from "../components/MapView";
 import IncidentList from "../components/IncidentList";
 import TransactionList from "../components/TransactionList";
 import PaymentModal from "../components/PaymentModal";
+import { subscribeToPayments } from "../services/firebase";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -78,7 +79,19 @@ export default function TripDetail() {
   }
 
   useEffect(() => {
+    // Initial fetch
     loadTripData();
+
+    // Subscribe to payments real-time listener
+    const unsubscribePayments = subscribeToPayments(id, (realTimePayments) => {
+      setPayments(realTimePayments);
+      // Reload trip details to sync budget meter
+      loadTripData();
+    });
+
+    return () => {
+      if (unsubscribePayments) unsubscribePayments();
+    };
   }, [id]);
 
   async function updateStatus(newStatus) {

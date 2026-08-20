@@ -1,0 +1,243 @@
+{
+  "name": "Telemetry Risk Analysis & Policy Engine Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telemetry",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        240
+      ],
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.5-flash",
+        "prompt": "={{ $json.body }}",
+        "systemInstruction": "You are a Travel Guardian AI agent. Analyze the traveler's telemetry data and return a JSON risk assessment containing: riskLevel (LOW/MEDIUM/HIGH/CRITICAL), riskScore (0-100), reason (string description), keyFactors (array of strings), recommendedActions (array of action ID strings, e.g., 'contact_roadside_assistance', 'request_checkin'), and urgency (none/low/moderate/high/immediate).",
+        "options": {
+          "responseMimeType": "application/json"
+        }
+      },
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        400,
+        240
+      ],
+      "id": "gemini-risk-analysis",
+      "name": "Gemini Risk Analysis",
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "gemini-api-creds",
+          "name": "Gemini API Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const telemetry = $('Webhook Trigger').item.json.body;\nconst analysis = JSON.parse($json.text);\nconst riskLevel = analysis.riskLevel;\n\n// Spending & action policies\nconst autoApproveActions = [\n  \"request_checkin\",\n  \"retrieve_last_location\",\n  \"check_route\",\n  \"check_weather\",\n  \"log_incident\"\n];\n\nconst requireApprovalActions = [\n  \"contact_roadside_assistance\",\n  \"notify_emergency_contacts\",\n  \"find_assistance\"\n];\n\nconst actionResults = analysis.recommendedActions.map(action => {\n  if (autoApproveActions.includes(action)) {\n    return { action, authorized: true, reason: 'Auto-approved by policy.', requiresApproval: false };\n  }\n  if (requireApprovalActions.includes(action)) {\n    if (riskLevel === 'CRITICAL') {\n      return { action, authorized: true, reason: 'Auto-authorized due to CRITICAL risk.', requiresApproval: false };\n    }\n    return { action, authorized: false, reason: 'Requires traveler approval.', requiresApproval: true };\n  }\n  return { action, authorized: false, reason: 'Unknown action. Denied.', requiresApproval: true };\n});\n\nconst isRoadsideAssistanceApproved = actionResults.some(ar => ar.action === 'contact_roadside_assistance' && ar.authorized);\n\nreturn {\n  telemetry,\n  analysis: {\n    ...analysis,\n    recommendedActions: actionResults\n  },\n  isRoadsideAssistanceApproved\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        240
+      ],
+      "id": "policy-engine",
+      "name": "Policy Engine Logic"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:3001/api/incidents",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tripId",
+              "value": "={{ $json.telemetry.tripId || 'unknown' }}"
+            },
+            {
+              "name": "telemetry",
+              "value": "={{ $json.telemetry }}"
+            },
+            {
+              "name": "analysis",
+              "value": "={{ $json.analysis }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        840,
+        240
+      ],
+      "id": "log-incident-db",
+      "name": "Log Incident (DB)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-payout",
+              "leftValue": "={{ $('Policy Engine Logic').item.json.isRoadsideAssistanceApproved }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        240
+      ],
+      "id": "check-roadside-assistance",
+      "name": "Trigger Payment?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:3001/api/trips/{{ $('Policy Engine Logic').item.json.telemetry.tripId }}/payments",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "amountINR",
+              "value": "350"
+            },
+            {
+              "name": "category",
+              "value": "roadside_assistance"
+            },
+            {
+              "name": "description",
+              "value": "n8n auto-dispatch roadside assistance payment"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1280,
+        140
+      ],
+      "id": "execute-x402-payment",
+      "name": "Execute x402 Payment"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"incidentId\": \"{{ $json.id || $('Log Incident (DB)').item.json.incident.id }}\",\n  \"riskLevel\": \"{{ $('Policy Engine Logic').item.json.analysis.riskLevel }}\",\n  \"riskScore\": {{ $('Policy Engine Logic').item.json.analysis.riskScore }},\n  \"reason\": \"{{ $('Policy Engine Logic').item.json.analysis.reason }}\",\n  \"recommendedActions\": {{ JSON.stringify($('Policy Engine Logic').item.json.analysis.recommendedActions) }},\n  \"payment\": {{ $('Trigger Payment?').item.json.isRoadsideAssistanceApproved ? JSON.stringify($json) : 'null' }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        240
+      ],
+      "id": "webhook-response",
+      "name": "Webhook Response"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gemini Risk Analysis",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Risk Analysis": {
+      "main": [
+        [
+          {
+            "node": "Policy Engine Logic",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Policy Engine Logic": {
+      "main": [
+        [
+          {
+            "node": "Log Incident (DB)",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Incident (DB)": {
+      "main": [
+        [
+          {
+            "node": "Trigger Payment?",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Payment?": {
+      "main": [
+        [
+          {
+            "node": "Execute x402 Payment",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Webhook Response",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute x402 Payment": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "meta": {
+    "templateId": "travel-guardian-telemetry-pipeline"
+  },
+  "pinData": {}
+}

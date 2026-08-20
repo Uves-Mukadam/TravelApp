@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchIncidents } from "../services/api";
 import RiskCard from "../components/RiskCard";
 import MapView from "../components/MapView";
+import { subscribeToIncidents } from "../services/firebase";
 
 /**
  * Format ISO timestamp to a human-readable relative or absolute time.
@@ -78,10 +79,24 @@ export default function Dashboard() {
     }
   };
 
-  // Initial load + auto-refresh every 10 seconds
+  // Real-time listener subscription (falls back to polling if Firebase not configured)
   useEffect(() => {
+    const unsubscribe = subscribeToIncidents((realTimeIncidents) => {
+      setIncidents(realTimeIncidents);
+      setLoading(false);
+      setError(null);
+      setLastRefresh(new Date());
+    }, 50);
+
+    if (unsubscribe) {
+      console.log("[Dashboard] Listening to Firestore real-time snapshots.");
+      return () => unsubscribe();
+    }
+
+    // Fallback: poll every 5 seconds
+    console.log("[Dashboard] Firebase config missing. Using HTTP polling fallback (5s).");
     loadIncidents();
-    const interval = setInterval(loadIncidents, 10000);
+    const interval = setInterval(loadIncidents, 5000);
     return () => clearInterval(interval);
   }, [loadIncidents]);
 
