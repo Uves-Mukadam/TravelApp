@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import ItineraryCard from "../components/ItineraryCard";
 import MapView from "../components/MapView";
 import IncidentList from "../components/IncidentList";
+import TransactionList from "../components/TransactionList";
+import PaymentModal from "../components/PaymentModal";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -21,22 +23,43 @@ function formatINR(amount) {
  * - Trip info & status controls
  * - Interactive map with waypoints
  * - AI-generated itinerary
- * - Related incidents
+ * - Wallet and Budget status (Algorand integrations)
+ * - Micropayments transaction history (x402 integrations)
+ * - Related incidents list
  */
 export default function TripDetail() {
   const { id } = useParams();
   const [trip, setTrip] = useState(null);
   const [incidents, setIncidents] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  async function loadTrip() {
+  async function loadTripData() {
     try {
-      const res = await fetch(`${API_URL}/api/trips/${id}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setTrip(data.trip);
-      setIncidents(data.incidents || []);
+      // 1. Fetch trip and incidents
+      const resTrip = await fetch(`${API_URL}/api/trips/${id}`);
+      if (!resTrip.ok) throw new Error(`HTTP ${resTrip.status}`);
+      const dataTrip = await resTrip.json();
+      setTrip(dataTrip.trip);
+      setIncidents(dataTrip.incidents || []);
+
+      // 2. Fetch payments history
+      const resPayments = await fetch(`${API_URL}/api/trips/${id}/payments`);
+      if (resPayments.ok) {
+        const dataPayments = await resPayments.json();
+        setPayments(dataPayments.payments || []);
+      }
+
+      // 3. Fetch traveler wallet status
+      const resWallet = await fetch(`${API_URL}/api/wallet/balance`);
+      if (resWallet.ok) {
+        const dataWallet = await resWallet.json();
+        setWallet(dataWallet);
+      }
+
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -46,7 +69,7 @@ export default function TripDetail() {
   }
 
   useEffect(() => {
-    loadTrip();
+    loadTripData();
   }, [id]);
 
   async function updateStatus(newStatus) {
@@ -62,6 +85,13 @@ export default function TripDetail() {
     } catch (err) {
       console.error("Failed to update trip:", err);
     }
+  }
+
+  function handlePaymentSuccess(newPayment) {
+    // Append to transactions list
+    setPayments((prev) => [newPayment, ...prev]);
+    // Reload trip budget status
+    loadTripData();
   }
 
   if (loading) {
@@ -91,6 +121,9 @@ export default function TripDetail() {
   }
 
   const waypoints = trip.itinerary?.routeWaypoints || [];
+  const budgetSpent = trip.budgetSpent || 0;
+  const emergencyLimit = 2000; // default emergency limit
+  const percentSpent = Math.min((budgetSpent / emergencyLimit) * 100, 100);
 
   return (
     <div className="page" id="trip-detail-page">
@@ -122,7 +155,7 @@ export default function TripDetail() {
               }}
             >
               <span>📅 {trip.days} day{trip.days > 1 ? "s" : ""}</span>
-              <span>💰 {formatINR(trip.budget)}</span>
+              <span>💰 Budget: {formatINR(trip.budget)}</span>
               <span>🚗 {trip.preferences?.vehicleType || "car"}</span>
             </div>
           </div>
@@ -156,7 +189,7 @@ export default function TripDetail() {
         </div>
       )}
 
-      {/* Two-column layout: Itinerary + Incidents */}
+      {/* Two-column layout: Itinerary + Wallet/Log/Incidents */}
       <div className="simulator-layout">
         {/* Left: Itinerary */}
         <div>
@@ -171,8 +204,70 @@ export default function TripDetail() {
           )}
         </div>
 
-        {/* Right: Incidents */}
-        <div>
+        {/* Right Column: Wallet/Budget, Transactions & Incidents */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)" }}>
+          {/* Wallet & Emergency Budget Progress Card */}
+          <div className="card" id="wallet-budget-card">
+            <div className="card-header" style={{ marginBottom: "var(--space-sm)" }}>
+              <h3 className="card-title">💳 Wallet & Safety Budget</h3>
+              {trip.status === "active" && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowPaymentModal(true)}
+                  id="trigger-payment-btn"
+                >
+                  ⚡ Trigger Payment
+                </button>
+              )}
+            </div>
+
+            {wallet && (
+              <div style={{ marginBottom: "var(--space-md)", background: "rgba(255,255,255,0.02)", padding: "var(--space-sm)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Algorand Wallet Address:</span>
+                  <span
+                    style={{ fontFamily: "monospace", color: "var(--text-secondary)" }}
+                    title={wallet.address}
+                  >
+                    {wallet.address ? `${wallet.address.substring(0, 8)}...${wallet.address.substring(wallet.address.length - 8)}` : "None"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginTop: "4px" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Wallet Balance:</span>
+                  <span style={{ fontWeight: 600, color: "var(--accent-primary)" }}>
+                    {wallet.balance?.toFixed(4)} ALGO
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Budget Meter */}
+            <div style={{ margin: "var(--space-md) 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "4px" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Emergency Spent</span>
+                <span style={{ fontWeight: 600 }}>
+                  {formatINR(budgetSpent)} / {formatINR(emergencyLimit)}
+                </span>
+              </div>
+              <div className="risk-score-bar-bg" style={{ height: "10px" }}>
+                <div
+                  className="risk-score-bar-fill"
+                  style={{
+                    width: `${percentSpent}%`,
+                    background:
+                      percentSpent > 80
+                        ? "var(--risk-critical)"
+                        : percentSpent > 50
+                        ? "var(--risk-medium)"
+                        : "var(--risk-low)",
+                    height: "100%",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Incidents Card */}
           <div className="card">
             <div className="card-header">
               <h3 className="card-title">🔔 Trip Incidents</h3>
@@ -182,8 +277,28 @@ export default function TripDetail() {
             </div>
             <IncidentList incidents={incidents} loading={false} />
           </div>
+
+          {/* Payments Transaction Feed */}
+          <div className="card" id="blockchain-payments-card">
+            <div className="card-header">
+              <h3 className="card-title">🔗 Algorand Transaction Proofs</h3>
+              <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                {payments.length} log{payments.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <TransactionList payments={payments} />
+          </div>
         </div>
       </div>
+
+      {/* Manual Payment Trigger Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          tripId={trip.id}
+          onPaymentComplete={handlePaymentSuccess}
+          onClose={() => setShowPaymentModal(false)}
+        />
+      )}
     </div>
   );
 }

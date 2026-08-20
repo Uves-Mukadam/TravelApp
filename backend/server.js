@@ -16,6 +16,8 @@ const firebase = require("./services/firebase");
 const policyEngine = require("./services/policyEngine");
 const travelPlanner = require("./services/travelPlanner");
 const tripManager = require("./services/tripManager");
+const algorand = require("./services/algorand");
+const x402 = require("./services/x402");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,6 +41,8 @@ gemini.initialize();
 firebase.initialize();
 travelPlanner.initialize();
 tripManager.initialize();
+algorand.initialize();
+x402.initialize();
 
 // =============================================
 // ROUTES
@@ -102,15 +106,35 @@ app.post("/api/telemetry", async (req, res) => {
       return { action, ...validation };
     });
 
-    // Step 3: Log incident to Firebase
-    console.log("[Pipeline] Step 3: Logging incident...");
+    // Step 3: Check if emergency payment should be automatically executed via x402
+    let paymentResult = null;
+    const isRoadsideAssistanceAuthorized = actionResults.find(
+      (ar) => ar.action === "contact_roadside_assistance" && ar.authorized
+    );
+
+    if (isRoadsideAssistanceAuthorized && telemetry.tripId) {
+      console.log("[Pipeline] Auto-authorizing emergency roadside assistance payment via x402...");
+      try {
+        paymentResult = await x402.processPayment({
+          tripId: telemetry.tripId,
+          amountINR: 350, // ₹350 standard roadside assistance charge
+          category: "roadside_assistance",
+          description: "AI Guardian automated roadside assistance fee",
+        });
+      } catch (err) {
+        console.error("[Pipeline] Auto-payment failed:", err.message);
+      }
+    }
+
+    // Step 4: Log incident to Firebase
+    console.log("[Pipeline] Step 4: Logging incident...");
     const incident = await firebase.logIncident({
       tripId: telemetry.tripId || "unknown",
       telemetry,
       analysis,
     });
 
-    // Step 4: Return result
+    // Step 5: Return result
     const result = {
       incidentId: incident.id,
       timestamp: incident.timestamp,
@@ -120,6 +144,7 @@ app.post("/api/telemetry", async (req, res) => {
       keyFactors: analysis.keyFactors,
       recommendedActions: actionResults,
       urgency: analysis.urgency,
+      payment: paymentResult,
     };
 
     console.log("[Pipeline] Complete. Incident:", incident.id);
@@ -287,6 +312,85 @@ app.put("/api/trips/:id", async (req, res) => {
     console.error("[Trips] Error updating trip:", error);
     res.status(500).json({
       error: "Failed to update trip.",
+      message: error.message,
+    });
+  }
+});
+
+// =============================================
+// WALLET & PAYMENT ROUTES
+// =============================================
+
+/**
+ * GET /api/wallet/balance
+ *
+ * Retrieve traveler Algorand address and balance.
+ */
+app.get("/api/wallet/balance", async (req, res) => {
+  try {
+    const address = algorand.getWalletAddress();
+    const balance = address ? await algorand.getBalance(address) : 0;
+    res.json({
+      address,
+      balance,
+      unit: "ALGO",
+      simulatedRate: "1 ALGO = ₹100",
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to fetch wallet info.",
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/trips/:id/payments
+ *
+ * Trigger or approve a manual payment from trip's emergency budget.
+ */
+app.post("/api/trips/:id/payments", async (req, res) => {
+  try {
+    const { amountINR, category, description } = req.body;
+    if (!amountINR || !category) {
+      return res.status(400).json({ error: "Required fields: amountINR, category" });
+    }
+
+    console.log(`[Payments] Manual payment request of ₹${amountINR} for trip ${req.params.id}`);
+    const result = await x402.processPayment({
+      tripId: req.params.id,
+      amountINR: parseInt(amountINR),
+      category,
+      description: description || `Manual payment: ${category}`,
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error("[Payments] Error processing payment:", error);
+    res.status(500).json({
+      error: "Failed to process payment.",
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/trips/:id/payments
+ *
+ * List payment logs for a trip.
+ */
+app.get("/api/trips/:id/payments", async (req, res) => {
+  try {
+    const payments = await x402.getPayments(req.params.id);
+    res.json({ payments });
+  } catch (error) {
+    console.error("[Payments] Error fetching payments:", error);
+    res.status(500).json({
+      error: "Failed to fetch payments.",
       message: error.message,
     });
   }
