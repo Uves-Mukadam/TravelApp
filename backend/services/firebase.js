@@ -67,7 +67,7 @@ const memoryStore = {
  * @param {Object} params.analysis - Gemini risk analysis result
  * @returns {Object} The created incident record
  */
-async function logIncident({ tripId, telemetry, analysis }) {
+async function logIncident({ tripId, telemetry, analysis, recommendedActions }) {
   const incident = {
     tripId: tripId || "unknown",
     timestamp: new Date().toISOString(),
@@ -76,7 +76,7 @@ async function logIncident({ tripId, telemetry, analysis }) {
     riskScore: analysis.riskScore,
     reason: analysis.reason,
     keyFactors: analysis.keyFactors || [],
-    recommendedActions: analysis.recommendedActions || [],
+    recommendedActions: recommendedActions || analysis.recommendedActions || [],
     urgency: analysis.urgency || "none",
     agentId: "travel_guardian",
     status: "logged",
@@ -135,4 +135,47 @@ function clearMemoryStore() {
   memoryStore.incidents = [];
 }
 
-module.exports = { initialize, logIncident, getIncidents, clearMemoryStore };
+/**
+ * Get a single incident by ID.
+ */
+async function getIncident(incidentId) {
+  if (initialized && db) {
+    try {
+      const doc = await db.collection("incidents").doc(incidentId).get();
+      if (!doc.exists) return null;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error("[Firebase] Failed to get incident:", error.message);
+    }
+  }
+  return memoryStore.incidents.find((i) => i.id === incidentId) || null;
+}
+
+/**
+ * Update a single incident by ID.
+ */
+async function updateIncident(incidentId, updates) {
+  if (initialized && db) {
+    try {
+      await db.collection("incidents").doc(incidentId).update(updates);
+      const updated = await getIncident(incidentId);
+      return updated;
+    } catch (error) {
+      console.error("[Firebase] Failed to update incident:", error.message);
+    }
+  }
+
+  const idx = memoryStore.incidents.findIndex((i) => i.id === incidentId);
+  if (idx === -1) return null;
+  Object.assign(memoryStore.incidents[idx], updates);
+  return memoryStore.incidents[idx];
+}
+
+module.exports = {
+  initialize,
+  logIncident,
+  getIncidents,
+  getIncident,
+  updateIncident,
+  clearMemoryStore,
+};

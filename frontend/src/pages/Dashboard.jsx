@@ -55,6 +55,29 @@ export default function Dashboard() {
     }
   }, []);
 
+  const handleApproveAction = async (actionName) => {
+    if (!selectedIncident) return;
+    try {
+      const res = await fetch(
+        `${API_URL}/api/incidents/${selectedIncident.id}/actions/${actionName}/approve`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      
+      // Update local selected incident state
+      setSelectedIncident(data.incident);
+      // Refresh incidents list to update status markers
+      loadIncidents();
+    } catch (err) {
+      console.error("Failed to approve action:", err);
+      alert(`Action approval failed: ${err.message}`);
+    }
+  };
+
   // Initial load + auto-refresh every 10 seconds
   useEffect(() => {
     loadIncidents();
@@ -224,7 +247,7 @@ export default function Dashboard() {
         <div>
           {selectedIncident ? (
             <div>
-              <RiskCard result={selectedIncident} />
+              <RiskCard result={selectedIncident} onApproveAction={handleApproveAction} />
 
               {/* Telemetry Data */}
               {selectedIncident.telemetry && (

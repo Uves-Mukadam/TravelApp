@@ -46,17 +46,19 @@ Gemini API (Risk Analysis & Trip Planning)
 Firebase Firestore (Incident Logs & Trip Management)
         ↓
 Policy Engine (Action Authorization)
-        ↓ (PLANNED)
+        ↓
 x402 Micropayments
-        ↓ (PLANNED)
+        ↓
 Algorand Testnet
 ```
 
 ### Architecture Notes
 
 - **Milestone 1** established the basic vertical slice (Express.js stand-in for n8n, Gemini risk analysis, in-memory/Firebase incident logs, React Dashboard).
-- **Milestone 2** expanded this to include full Trip Management (creation, listing, detail view), the Travel Planner Agent (Gemini-powered structured itinerary planner), and Leaflet.js interactive maps for route waypoints and incident mapping.
-- Graceful fallbacks remain: the system continues to work without active Gemini API keys (mock itinerary and risk analysis) or Firebase credentials (in-memory storage for trips and incidents).
+- **Milestone 2** expanded this to include full Trip Management (creation, listing, detail view), the Travel Planner Agent (Gemini-powered structured itinerary planner), and Leaflet.js interactive maps.
+- **Milestone 3** integrated the payment layer: Algorand Testnet wallet balance/address retrieval, x402 micropayment simulation, spending policy checking, transaction logs, and auto-payments.
+- **Milestone 4** completed simulator-trip binding, interactive dashboard action approvals (triggering manual roadside payments), Algorand Dispenser shortcuts, and BigInt balance calculation bug fixes.
+- Graceful fallbacks remain: the system continues to work without active Gemini API keys (mock itinerary and risk analysis) or Firebase credentials (in-memory storage for trips, incidents, and payments).
 
 ---
 
@@ -76,18 +78,22 @@ Algorand Testnet
 - [x] **Travel Planner Agent**: Gemini-generated daily itineraries with cost breakdowns and safety checkpoints
 - [x] **Map Visualization**: Leaflet.js interactive maps showing route waypoints and color-coded incident markers
 - [x] **Expandable Dashboard Incidents**: Click incident to display RiskCard and raw telemetry side-by-side
+- [x] **Algorand Wallet Balance**: Fetches current testnet balance and address.
+- [x] **x402 Micropayments**: Settle transactions on Algorand testnet/mock, log receipts, and deduct from budget.
+- [x] **Automated Telemetry Payments**: Telemetry warnings under `CRITICAL` risk automatically execute ₹350 roadside assistance payment.
+- [x] **Manual x402 trigger**: Dispatch payments directly from the Trip Details card.
+- [x] **Trip-connected Simulator**: Dropdown allows targeting active database trips and pre-fills coordinate presets automatically.
+- [x] **Action Approval Interface**: Approve AI actions requiring consent (triggers x402 roadside payments) from the Dashboard.
+- [x] **Algorand Testnet Dispenser Shortcut**: Copy address button and dispenser link integrated on details card.
 
 ### IN PROGRESS
 - (none currently)
 
 ### PLANNED
-- [ ] x402 micropayment integration
-- [ ] Algorand testnet wallet and transaction flow
 - [ ] n8n workflow integration (replace Express stand-in)
 - [ ] Firebase Realtime Database / Firestore real-time listeners on frontend (currently polling)
 - [ ] Emergency contact notification system
 - [ ] User authentication
-- [ ] Map visualization improvements (current speed, active tracing)
 - [ ] Historical incident analysis
 
 ---
@@ -146,7 +152,7 @@ Algorand Testnet
 | `riskScore` | number (0-100) | Numerical risk score |
 | `reason` | string | AI-generated explanation |
 | `keyFactors` | array[string] | Factors that influenced the assessment |
-| `recommendedActions` | array[string] | Recommended action IDs |
+| `recommendedActions` | array[object] | Recommended action objects (`{ action, authorized, requiresApproval, reason }`) |
 | `urgency` | string | none / low / moderate / high / immediate |
 | `agentId` | string | Always "travel_guardian" for now |
 | `status` | string | "logged" / "acknowledged" / "resolved" |
@@ -167,6 +173,23 @@ Algorand Testnet
 | `preferences` | object | User preferences (vehicle, comfort level, etc.) |
 | `createdAt` | string | ISO timestamp |
 | `agentId` | string | "travel_planner" |
+
+### Collection: `payments`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Auto-generated |
+| `tripId` | string | Trip identifier |
+| `timestamp` | string | ISO timestamp |
+| `amount` | number | Amount in ₹ |
+| `algoAmount` | number | Equivalent ALGO |
+| `category` | string | category e.g. "roadside_assistance" |
+| `description` | string | Payment description |
+| `txId` | string | Algorand Transaction ID |
+| `senderAddress` | string | Traveler's address |
+| `receiverAddress` | string | Provider's address |
+| `status` | string | Always "completed" for successfully logged payments |
+| `explorerUrl` | string | Link to block explorer |
 
 ### Security Considerations
 - Firebase rules should restrict write access to the backend service account only
@@ -194,17 +217,16 @@ Algorand Testnet
 - **Payment flow**: Agent recommends payment → Policy engine validates (category, amount, budget) → If authorized: x402 payment initiated → Transaction settled on Algorand
 - **Which services require payment**: roadside_assistance, emergency_api (planned), premium map/weather APIs (planned)
 - **How payment authorization works**: The AI (Gemini) can RECOMMEND actions, but the policy engine (deterministic code) DECIDES whether they are authorized. The LLM never directly authorizes financial transactions.
-- **Current implementation status**: ❌ NOT IMPLEMENTED (Milestone 3+)
+- **Current implementation status**: ✅ IMPLEMENTED (simulated loop in backend service)
 
 ---
 
 ## Algorand
 
 - **Testnet usage**: All development and testing on Algorand Testnet
-- **Wallet architecture**: (TBD — will need escrow/custodial wallets for trip budgets)
-- **ASA/token information**: (TBD — may use custom ASA for trip credits)
-- **Transaction flow**: Policy engine authorizes → x402 payment request → Algorand transaction → Confirmation logged to Firebase
-- **Current implementation status**: ❌ NOT IMPLEMENTED (Milestone 3+)
+- **Wallet architecture**: Client service recovered from `ALGORAND_MNEMONIC` or dynamically generated transient dev wallets.
+- **Transaction flow**: Policy engine authorizes → x402 payment request → Algorand transaction signed/broadcasted → confirmation waited → logged to database.
+- **Current implementation status**: ✅ IMPLEMENTED (with simulated block receipts fallbacks if testnet dispenser balance is zero)
 
 **⚠️ NEVER store private keys, seed phrases, or mnemonics in code or this file.**
 
@@ -262,6 +284,7 @@ FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
 PORT=                                # Backend port, default: 3001
 CORS_ORIGIN=                         # Frontend origin, default: http://localhost:5173
+ALGORAND_MNEMONIC=                   # Optional 25-word secret key for testnet wallet
 
 # Frontend (Vite uses VITE_ prefix)
 VITE_API_URL=                        # Backend URL, default: http://localhost:3001
@@ -272,8 +295,8 @@ VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 
-# Algorand (PLANNED)
-ALGOD_SERVER=
+# Algorand
+ALGOD_SERVER=                        # Default: https://testnet-api.algonode.cloud
 ALGOD_PORT=
 ALGOD_TOKEN=
 ```
@@ -296,18 +319,20 @@ TravelApp/
 │       ├── App.jsx            # Root component with routing
 │       ├── index.css          # Design system (dark glassmorphism)
 │       ├── components/
-│       │   ├── Navbar.jsx     # Navigation bar (Dashboard, Trips, Simulator)
-│       │   ├── RiskCard.jsx   # Risk assessment display
-│       │   ├── TelemetryForm.jsx  # Telemetry input with presets
+│       │   ├── Navbar.jsx     # Navigation bar
+│       │   ├── RiskCard.jsx   # Interactive Risk assessment card
+│       │   ├── TelemetryForm.jsx  # Trip-connected Telemetry input form
 │       │   ├── IncidentList.jsx   # Incident feed list
 │       │   ├── MapView.jsx    # Interactive Leaflet map component
 │       │   ├── TripForm.jsx   # AI Travel Planner input form
-│       │   └── ItineraryCard.jsx  # AI trip plan & daily display component
+│       │   ├── ItineraryCard.jsx  # AI itinerary display component
+│       │   ├── TransactionList.jsx # Blockchain payments log feed
+│       │   └── PaymentModal.jsx   # Manual x402 payment dialog
 │       ├── pages/
-│       │   ├── Dashboard.jsx  # Enhanced Incident dashboard with map + side details
+│       │   ├── Dashboard.jsx  # Incident dashboard with action approval controls
 │       │   ├── Simulator.jsx  # Telemetry simulator page
 │       │   ├── Trips.jsx      # Trips list & planner page
-│       │   └── TripDetail.jsx # Detailed view of single trip (map, itinerary, incidents)
+│       │   └── TripDetail.jsx # Detailed view of trip (map, itinerary, wallet, budget, payments log)
 │       └── services/
 │           └── api.js         # Backend API client
 ├── backend/                   # Express.js backend (n8n stand-in)
@@ -317,7 +342,9 @@ TravelApp/
 │   │   ├── gemini.js          # Gemini risk analysis
 │   │   ├── travelPlanner.js   # Travel Planner Agent
 │   │   ├── tripManager.js     # Trip CRUD operations
-│   │   ├── firebase.js        # Firestore logging
+│   │   ├── firebase.js        # Firestore logging (incident CRUD)
+│   │   ├── algorand.js        # Algorand testnet transactions SDK
+│   │   ├── x402.js            # x402 micropayment simulation SDK
 │   │   └── policyEngine.js    # Deterministic action authorization
 │   └── prompts/
 │       ├── riskAnalysis.txt   # System prompt for risk guardian
@@ -349,43 +376,49 @@ TravelApp/
 ## Completed Work
 
 ### 2026-08-20: Milestone 1 — First Vertical Slice
-- Full project scaffolding (React + Vite frontend, Express.js backend)
-- Telemetry simulator with 4 presets
-- Gemini-powered risk analysis (with mock fallback) and policy engine validation
-- In-memory/Firestore incident logging and dashboard UI
+- Project scaffolding, telemetry presets, Gemini risk analysis, in-memory logging, Dashboard UI.
 
 ### 2026-08-20: Milestone 2 — Trip Management + Travel Planner Agent
-- Created Travel Planner Agent prompting and backend service
-- Added Trip Management CRUD endpoints and UI pages (`/trips`, `/trips/:id`)
-- Integrated Leaflet.js interactive maps to render route waypoints and incident markers
-- Created expandable incident details and incident map on the Dashboard
+- Added Travel Planner Agent service and trip management routes.
+- Created `/trips`, `/trips/:id` pages, Leaflet.js route/incident mapping, and expandable detail cards on Dashboard.
+
+### 2026-08-20: Milestone 3 — x402 Micropayments & Algorand Blockchain
+- Installed `algosdk` and set up Nodely Algorand Testnet wallet service.
+- Simulated client-provider x402 micropayments handshake loops.
+- Integrated automatic emergency payments (₹350 roadside assistance fee) under critical risk levels.
+- Renders traveler wallet addresses, balances, budget indicators, and transaction lists with block explorer logs on details card.
+
+### 2026-08-20: Milestone 4 — Connected Simulator, Wallet Faucet, and Action Approvals
+- Upgraded simulator telemetry form to target active database trips and dynamically preset coordinates.
+- Added direct copy and Faucet shortcuts to Algorand Testnet Dispenser on details card.
+- Implemented manual approval controls for AI-recommended actions requiring consent (dispatches x402 roadside payments) on the Dashboard.
+- Fixed SDK compatibility type errors caused by Algorand BigInt calculations on balance queries.
 
 ---
 
 ## Current Work
 
-Setting up Milestone 3 (x402 Micropayments & Algorand integration).
+Platform feature milestones are fully completed and tested end-to-end. Ready for deployment preparation.
 
 ---
 
 ## Known Bugs
 
-- Dashboard polling: Dashboard still uses interval-based polling to load incidents. In production, this should use Firestore real-time snapshot listeners.
+- Dashboard polling: Dashboard still uses interval-based polling (10s refresh) to load incidents. In production, this should use Firestore real-time snapshot listeners.
 
 ---
 
 ## Pending Tasks
 
 ### Priority 1 (Next)
-- [ ] Scaffold Algorand setup (Testnet client initialization)
-- [ ] Implement x402 payment protocol simulation in the backend
-- [ ] Connect payments to policy engine checks (Roadside assistance, etc.)
-- [ ] Update Simulator to send payments/charge simulator requests
-
-### Priority 2 (Near-term)
 - [ ] Integrate n8n as the orchestration layer (replace Express stand-in)
 - [ ] Replace polling on Dashboard with Firebase real-time listeners
 - [ ] Add user authentication (Firebase Auth)
+
+### Priority 2 (Near-term)
+- [ ] Map visualization improvements (current speed, active tracing)
+- [ ] Emergency contact SMS/Email notification system
+- [ ] Historical incident analysis
 
 ---
 

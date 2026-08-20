@@ -36,6 +36,15 @@ export default function TripDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [copying, setCopying] = useState(false);
+
+  function copyAddress() {
+    if (wallet?.address) {
+      navigator.clipboard.writeText(wallet.address);
+      setCopying(true);
+      setTimeout(() => setCopying(false), 2000);
+    }
+  }
 
   async function loadTripData() {
     try {
@@ -225,12 +234,30 @@ export default function TripDetail() {
               <div style={{ marginBottom: "var(--space-md)", background: "rgba(255,255,255,0.02)", padding: "var(--space-sm)", borderRadius: "var(--radius-sm)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
                   <span style={{ color: "var(--text-muted)" }}>Algorand Wallet Address:</span>
-                  <span
-                    style={{ fontFamily: "monospace", color: "var(--text-secondary)" }}
-                    title={wallet.address}
-                  >
-                    {wallet.address ? `${wallet.address.substring(0, 8)}...${wallet.address.substring(wallet.address.length - 8)}` : "None"}
-                  </span>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <span
+                      style={{ fontFamily: "monospace", color: "var(--text-secondary)" }}
+                      title={wallet.address}
+                    >
+                      {wallet.address ? `${wallet.address.substring(0, 8)}...${wallet.address.substring(wallet.address.length - 8)}` : "None"}
+                    </span>
+                    {wallet.address && (
+                      <button
+                        onClick={copyAddress}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "var(--accent-primary)",
+                          cursor: "pointer",
+                          fontSize: "0.75rem",
+                          padding: 0
+                        }}
+                        title="Copy Wallet Address"
+                      >
+                        {copying ? "Copied!" : "📋"}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginTop: "4px" }}>
                   <span style={{ color: "var(--text-muted)" }}>Wallet Balance:</span>
@@ -238,6 +265,18 @@ export default function TripDetail() {
                     {wallet.balance?.toFixed(4)} ALGO
                   </span>
                 </div>
+                {wallet.address && (
+                  <div style={{ textAlign: "right", marginTop: "8px" }}>
+                    <a
+                      href="https://bank.testnet.algorand.network/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: "0.75rem", color: "var(--accent-primary)", textDecoration: "underline" }}
+                    >
+                      Fund Wallet via Testnet Dispenser ↗
+                    </a>
+                  </div>
+                )}
               </div>
             )}
 

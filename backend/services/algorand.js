@@ -60,7 +60,7 @@ async function getBalance(address) {
     const addr = address || walletAccount.addr.toString();
     const info = await algodClient.accountInformation(addr).do();
     // Balance is in microAlgos
-    return info.amount / 1_000_000;
+    return Number(info.amount) / 1_000_000;
   } catch (error) {
     console.warn(`[Algorand] Failed to fetch balance for ${address}:`, error.message);
     return 0;

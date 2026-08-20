@@ -132,6 +132,7 @@ app.post("/api/telemetry", async (req, res) => {
       tripId: telemetry.tripId || "unknown",
       telemetry,
       analysis,
+      recommendedActions: actionResults,
     });
 
     // Step 5: Return result
@@ -173,6 +174,99 @@ app.get("/api/incidents", async (req, res) => {
     console.error("[Incidents] Error:", error);
     res.status(500).json({
       error: "Failed to retrieve incidents.",
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/incidents/:id
+ *
+ * Retrieve a single incident.
+ */
+app.get("/api/incidents/:id", async (req, res) => {
+  try {
+    const incident = await firebase.getIncident(req.params.id);
+    if (!incident) {
+      return res.status(404).json({ error: "Incident not found" });
+    }
+    res.json({ incident });
+  } catch (error) {
+    console.error("[Incidents] Error getting incident:", error);
+    res.status(500).json({
+      error: "Failed to get incident.",
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/incidents/:id/actions/:actionName/approve
+ *
+ * Manually approve a recommended action.
+ * If the action is payment-bearing, triggers x402 payment process.
+ */
+app.post("/api/incidents/:id/actions/:actionName/approve", async (req, res) => {
+  try {
+    const { id, actionName } = req.params;
+    const incident = await firebase.getIncident(id);
+    if (!incident) {
+      return res.status(404).json({ error: "Incident not found" });
+    }
+
+    const actionIndex = incident.recommendedActions.findIndex(
+      (a) => a.action === actionName
+    );
+
+    if (actionIndex === -1) {
+      return res.status(404).json({ error: "Action not found on incident" });
+    }
+
+    const targetAction = incident.recommendedActions[actionIndex];
+    if (targetAction.authorized) {
+      return res.json({ success: true, incident, message: "Action already authorized" });
+    }
+
+    console.log(`[Approvals] Manual approval for action '${actionName}' on incident ${id}`);
+
+    // If it's a payment action, trigger the payment
+    let paymentResult = null;
+    if (actionName === "contact_roadside_assistance" && incident.tripId) {
+      console.log(`[Approvals] Triggering associated payment for roadside assistance...`);
+      paymentResult = await x402.processPayment({
+        tripId: incident.tripId,
+        amountINR: 350,
+        category: "roadside_assistance",
+        description: "Manually approved roadside assistance fee",
+      });
+
+      if (!paymentResult.success) {
+        return res.status(400).json({
+          error: "payment_failed",
+          message: paymentResult.message || "Failed to process payment during approval",
+        });
+      }
+    }
+
+    // Update action status to authorized
+    targetAction.authorized = true;
+    targetAction.requiresApproval = false;
+    targetAction.reason = "Manually approved by traveler";
+
+    // Update database record
+    const updatedIncident = await firebase.updateIncident(id, {
+      recommendedActions: incident.recommendedActions,
+    });
+
+    res.json({
+      success: true,
+      incident: updatedIncident,
+      payment: paymentResult,
+    });
+  } catch (error) {
+    console.error("[Approvals] Error approving action:", error);
+    res.status(500).json({
+      error: "Failed to approve action.",
       message: error.message,
     });
   }

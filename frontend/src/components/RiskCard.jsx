@@ -18,7 +18,7 @@ function getRiskColor(level) {
   return map[level] || "var(--text-muted)";
 }
 
-export default function RiskCard({ result }) {
+export default function RiskCard({ result, onApproveAction }) {
   if (!result) return null;
 
   const riskClass = result.riskLevel?.toLowerCase() || "low";
@@ -106,7 +106,7 @@ export default function RiskCard({ result }) {
           >
             Recommended Actions
           </h4>
-          <div className="actions-list" id="actions-list">
+          <div className="actions-list" id="actions-list" style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
             {result.recommendedActions.map((action, i) => {
               const actionData =
                 typeof action === "string" ? { action } : action;
@@ -121,9 +121,20 @@ export default function RiskCard({ result }) {
                   ? "⏳"
                   : "→";
               return (
-                <span key={i} className={`action-tag ${statusClass}`}>
-                  {icon} {actionData.action}
-                </span>
+                <div key={i} style={{ display: "flex", gap: "10px", alignItems: "center", width: "100%" }}>
+                  <span className={`action-tag ${statusClass}`} style={{ flex: 1 }}>
+                    {icon} {actionData.action}
+                  </span>
+                  {actionData.requiresApproval && onApproveAction && (
+                    <button
+                      onClick={() => onApproveAction(actionData.action)}
+                      className="btn btn-primary btn-sm"
+                      style={{ padding: "2px 10px", fontSize: "0.75rem" }}
+                    >
+                      👍 Approve
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
