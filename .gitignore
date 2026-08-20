@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# Build outputs
+dist/
+build/
+.next/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Firebase
+firebase-debug.log
+.firebase/
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
+# n8n
+.n8n/
+
+# Coverage
+coverage/
+
+# Misc
+*.tgz
+.cache/
