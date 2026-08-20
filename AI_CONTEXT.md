@@ -41,9 +41,9 @@ React Frontend (Vite)
         ↓
 Express.js Backend (n8n stand-in)
         ↓
-Gemini API (Risk Analysis)
+Gemini API (Risk Analysis & Trip Planning)
         ↓
-Firebase Firestore (Incident Logs)
+Firebase Firestore (Incident Logs & Trip Management)
         ↓
 Policy Engine (Action Authorization)
         ↓ (PLANNED)
@@ -54,11 +54,9 @@ Algorand Testnet
 
 ### Architecture Notes
 
-- **Milestone 1** uses an Express.js server as a stand-in for n8n to simplify the initial vertical slice.
-- The Express server handles: webhook reception → Gemini analysis → policy validation → Firebase logging.
-- When Gemini API key is not configured, the system falls back to a heuristic-based mock analysis.
-- When Firebase credentials are not configured, the system uses in-memory storage.
-- Both fallbacks ensure the app is fully functional for development without external services.
+- **Milestone 1** established the basic vertical slice (Express.js stand-in for n8n, Gemini risk analysis, in-memory/Firebase incident logs, React Dashboard).
+- **Milestone 2** expanded this to include full Trip Management (creation, listing, detail view), the Travel Planner Agent (Gemini-powered structured itinerary planner), and Leaflet.js interactive maps for route waypoints and incident mapping.
+- Graceful fallbacks remain: the system continues to work without active Gemini API keys (mock itinerary and risk analysis) or Firebase credentials (in-memory storage for trips and incidents).
 
 ---
 
@@ -74,20 +72,22 @@ Algorand Testnet
 - [x] Dashboard statistics (total, critical, high, low/medium counts)
 - [x] Risk assessment display with score meter, key factors, and action tags
 - [x] Dark glassmorphism UI with risk-level color coding
+- [x] **Trip Management**: Create, list, and view trip details (status controls: plan, start, complete)
+- [x] **Travel Planner Agent**: Gemini-generated daily itineraries with cost breakdowns and safety checkpoints
+- [x] **Map Visualization**: Leaflet.js interactive maps showing route waypoints and color-coded incident markers
+- [x] **Expandable Dashboard Incidents**: Click incident to display RiskCard and raw telemetry side-by-side
 
 ### IN PROGRESS
 - (none currently)
 
 ### PLANNED
-- [ ] Travel Planner Agent (trip planning, itinerary creation)
-- [ ] n8n workflow integration (replace Express stand-in)
-- [ ] Firebase Realtime Database / Firestore real-time listeners on frontend
 - [ ] x402 micropayment integration
 - [ ] Algorand testnet wallet and transaction flow
+- [ ] n8n workflow integration (replace Express stand-in)
+- [ ] Firebase Realtime Database / Firestore real-time listeners on frontend (currently polling)
 - [ ] Emergency contact notification system
-- [ ] Trip management (create, view, track trips)
 - [ ] User authentication
-- [ ] Map visualization of traveler location
+- [ ] Map visualization improvements (current speed, active tracing)
 - [ ] Historical incident analysis
 
 ---
@@ -109,11 +109,11 @@ Algorand Testnet
 
 - **Purpose**: Help travelers plan trips before the journey
 - **Inputs**: Trip parameters (origin, destination, budget, duration, preferences)
-- **Outputs**: Itinerary, route suggestions, accommodation options, cost estimates
-- **Tools**: (TBD - maps API, weather API, booking APIs)
-- **Decision Logic**: (TBD)
+- **Outputs**: Detailed structured itinerary (tripName, summary, totalEstimatedCost, costBreakdown, safetyTips, dailyPlans with activities, accommodation suggestions, checkpoints, emergency resources, routeWaypoints)
+- **Tools**: Gemini API for itinerary generation
+- **Decision Logic**: Custom system prompt for planning (see `backend/prompts/tripPlanner.txt`)
 - **Restrictions**: Budget-aware, follows user preferences
-- **Current Status**: ❌ PLANNED
+- **Current Status**: ✅ IMPLEMENTED (Milestone 2)
 
 ---
 
@@ -151,13 +151,26 @@ Algorand Testnet
 | `agentId` | string | Always "travel_guardian" for now |
 | `status` | string | "logged" / "acknowledged" / "resolved" |
 
-### Collection: `trips` (PLANNED)
+### Collection: `trips`
 
-Will store trip plans, routes, budgets, and traveler information.
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Auto-generated |
+| `name` | string | Trip name (e.g., "Mumbai → Goa") |
+| `origin` | string | Origin city name |
+| `destination` | string | Destination city name |
+| `days` | number | Trip duration |
+| `budget` | number | Total budget in ₹ |
+| `budgetSpent` | number | Amount spent so far |
+| `status` | string | "planning" / "active" / "completed" / "cancelled" |
+| `itinerary` | object | AI-generated daily plans (structured JSON) |
+| `preferences` | object | User preferences (vehicle, comfort level, etc.) |
+| `createdAt` | string | ISO timestamp |
+| `agentId` | string | "travel_planner" |
 
 ### Security Considerations
 - Firebase rules should restrict write access to the backend service account only
-- Frontend should only have read access to incidents for the authenticated user's trips
+- Frontend should only have read access to incidents and trips for the authenticated user
 - No PII (personally identifiable information) should be stored in telemetry unless necessary
 
 ---
@@ -165,11 +178,11 @@ Will store trip plans, routes, budgets, and traveler information.
 ## API Integrations
 
 ### Gemini API
-- **Purpose**: AI-powered risk analysis of traveler telemetry
+- **Purpose**: AI-powered risk analysis and trip itinerary generation
 - **Endpoint/Service**: `@google/generative-ai` SDK
 - **Model**: Configurable via `GEMINI_MODEL` env var (default: `gemini-2.5-flash`)
-- **Required inputs**: Telemetry JSON + system prompt
-- **Returned data**: Structured JSON risk assessment
+- **Required inputs**: System instructions + user query JSON
+- **Returned data**: Structured JSON
 - **Authentication**: API key via `GEMINI_API_KEY` env var
 - **Current status**: ✅ IMPLEMENTED (with mock fallback)
 
@@ -181,7 +194,7 @@ Will store trip plans, routes, budgets, and traveler information.
 - **Payment flow**: Agent recommends payment → Policy engine validates (category, amount, budget) → If authorized: x402 payment initiated → Transaction settled on Algorand
 - **Which services require payment**: roadside_assistance, emergency_api (planned), premium map/weather APIs (planned)
 - **How payment authorization works**: The AI (Gemini) can RECOMMEND actions, but the policy engine (deterministic code) DECIDES whether they are authorized. The LLM never directly authorizes financial transactions.
-- **Current implementation status**: ❌ NOT IMPLEMENTED (Milestone 2+)
+- **Current implementation status**: ❌ NOT IMPLEMENTED (Milestone 3+)
 
 ---
 
@@ -191,7 +204,7 @@ Will store trip plans, routes, budgets, and traveler information.
 - **Wallet architecture**: (TBD — will need escrow/custodial wallets for trip budgets)
 - **ASA/token information**: (TBD — may use custom ASA for trip credits)
 - **Transaction flow**: Policy engine authorizes → x402 payment request → Algorand transaction → Confirmation logged to Firebase
-- **Current implementation status**: ❌ NOT IMPLEMENTED (Milestone 2+)
+- **Current implementation status**: ❌ NOT IMPLEMENTED (Milestone 3+)
 
 **⚠️ NEVER store private keys, seed phrases, or mnemonics in code or this file.**
 
@@ -283,24 +296,32 @@ TravelApp/
 │       ├── App.jsx            # Root component with routing
 │       ├── index.css          # Design system (dark glassmorphism)
 │       ├── components/
-│       │   ├── Navbar.jsx     # Sticky navigation bar
+│       │   ├── Navbar.jsx     # Navigation bar (Dashboard, Trips, Simulator)
 │       │   ├── RiskCard.jsx   # Risk assessment display
 │       │   ├── TelemetryForm.jsx  # Telemetry input with presets
-│       │   └── IncidentList.jsx   # Incident feed list
+│       │   ├── IncidentList.jsx   # Incident feed list
+│       │   ├── MapView.jsx    # Interactive Leaflet map component
+│       │   ├── TripForm.jsx   # AI Travel Planner input form
+│       │   └── ItineraryCard.jsx  # AI trip plan & daily display component
 │       ├── pages/
-│       │   ├── Dashboard.jsx  # Incident dashboard with stats
-│       │   └── Simulator.jsx  # Telemetry simulator page
+│       │   ├── Dashboard.jsx  # Enhanced Incident dashboard with map + side details
+│       │   ├── Simulator.jsx  # Telemetry simulator page
+│       │   ├── Trips.jsx      # Trips list & planner page
+│       │   └── TripDetail.jsx # Detailed view of single trip (map, itinerary, incidents)
 │       └── services/
 │           └── api.js         # Backend API client
 ├── backend/                   # Express.js backend (n8n stand-in)
 │   ├── package.json
 │   ├── server.js              # Express server, routes, pipeline
 │   ├── services/
-│   │   ├── gemini.js          # Gemini risk analysis + mock fallback
-│   │   ├── firebase.js        # Firestore logging + in-memory fallback
+│   │   ├── gemini.js          # Gemini risk analysis
+│   │   ├── travelPlanner.js   # Travel Planner Agent
+│   │   ├── tripManager.js     # Trip CRUD operations
+│   │   ├── firebase.js        # Firestore logging
 │   │   └── policyEngine.js    # Deterministic action authorization
 │   └── prompts/
-│       └── riskAnalysis.txt   # System prompt for Gemini
+│       ├── riskAnalysis.txt   # System prompt for risk guardian
+│       └── tripPlanner.txt    # System prompt for trip planner
 └── n8n/
     └── workflows/
         └── README.md          # Placeholder for future n8n workflows
@@ -328,56 +349,43 @@ TravelApp/
 ## Completed Work
 
 ### 2026-08-20: Milestone 1 — First Vertical Slice
-
-**What was built:**
 - Full project scaffolding (React + Vite frontend, Express.js backend)
-- Traveler telemetry simulator with 4 scenario presets
-- Gemini-powered risk analysis service (with mock fallback)
-- Firebase incident logging (with in-memory fallback)
-- Deterministic policy engine for action authorization
-- React dashboard with real-time incident feed
-- Dark glassmorphism UI with risk-level color coding
-- Complete project documentation (AI_CONTEXT.md)
+- Telemetry simulator with 4 presets
+- Gemini-powered risk analysis (with mock fallback) and policy engine validation
+- In-memory/Firestore incident logging and dashboard UI
 
-**Key files created:**
-- `backend/server.js`, `backend/services/gemini.js`, `backend/services/firebase.js`, `backend/services/policyEngine.js`
-- `frontend/src/pages/Dashboard.jsx`, `frontend/src/pages/Simulator.jsx`
-- `frontend/src/components/Navbar.jsx`, `frontend/src/components/RiskCard.jsx`, `frontend/src/components/TelemetryForm.jsx`, `frontend/src/components/IncidentList.jsx`
-- `frontend/src/services/api.js`, `frontend/src/index.css`
+### 2026-08-20: Milestone 2 — Trip Management + Travel Planner Agent
+- Created Travel Planner Agent prompting and backend service
+- Added Trip Management CRUD endpoints and UI pages (`/trips`, `/trips/:id`)
+- Integrated Leaflet.js interactive maps to render route waypoints and incident markers
+- Created expandable incident details and incident map on the Dashboard
 
 ---
 
 ## Current Work
 
-Milestone 1 vertical slice is complete. Ready for testing and next milestone planning.
+Setting up Milestone 3 (x402 Micropayments & Algorand integration).
 
 ---
 
 ## Known Bugs
 
-(None known at this time)
+- Dashboard polling: Dashboard still uses interval-based polling to load incidents. In production, this should use Firestore real-time snapshot listeners.
 
 ---
 
 ## Pending Tasks
 
 ### Priority 1 (Next)
-- [ ] Test the full pipeline end-to-end (simulator → backend → dashboard)
-- [ ] Add Firebase real-time listeners on the frontend (replace polling)
-- [ ] Add a `.env` setup guide to help new developers get started
+- [ ] Scaffold Algorand setup (Testnet client initialization)
+- [ ] Implement x402 payment protocol simulation in the backend
+- [ ] Connect payments to policy engine checks (Roadside assistance, etc.)
+- [ ] Update Simulator to send payments/charge simulator requests
 
 ### Priority 2 (Near-term)
 - [ ] Integrate n8n as the orchestration layer (replace Express stand-in)
-- [ ] Add map visualization for traveler location
-- [ ] Implement trip management (create/view/track trips)
+- [ ] Replace polling on Dashboard with Firebase real-time listeners
 - [ ] Add user authentication (Firebase Auth)
-
-### Priority 3 (Milestone 2+)
-- [ ] x402 micropayment integration
-- [ ] Algorand testnet wallet setup
-- [ ] Travel Planner Agent
-- [ ] Emergency contact notification system
-- [ ] Historical incident analytics
 
 ---
 
@@ -400,6 +408,12 @@ Milestone 1 vertical slice is complete. Ready for testing and next milestone pla
 - **Reason**: Security requirement — LLMs must never have direct authority over financial transactions. The policy engine uses explicit rules (budget limits, category restrictions, risk-level overrides).
 - **Date**: 2026-08-20
 - **Alternatives considered**: Let Gemini decide payment authorization. Rejected for security reasons.
+
+### Decision 4: Leaflet.js for Maps
+- **Decision**: Use Leaflet.js and CartoDB dark tiles for map rendering
+- **Reason**: Completely free, requires no API keys (unlike Google Maps or Mapbox), fits the dark glassmorphism aesthetic perfectly, and lightweight.
+- **Date**: 2026-08-20
+- **Alternatives considered**: Google Maps API, Mapbox GL JS.
 
 ---
 
@@ -428,38 +442,4 @@ npm install
 npm run dev
 
 # 4. Open http://localhost:5173 in your browser
-# 5. Go to Simulator → Select a preset → Click "Analyze Risk"
-# 6. Go to Dashboard → See logged incidents
-```
-
-### With Gemini API Key
-
-```bash
-# In backend/.env, add:
-GEMINI_API_KEY=your_key_here
-
-# Restart the backend
-npm run dev
-```
-
-### With Firebase
-
-```bash
-# In backend/.env, add either:
-FIREBASE_SERVICE_ACCOUNT_PATH=/path/to/serviceAccountKey.json
-
-# Or individual values:
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_CLIENT_EMAIL=your_client_email
-FIREBASE_PRIVATE_KEY=your_private_key
-
-# Restart the backend
-npm run dev
-```
-
-### Running n8n (PLANNED)
-
-```bash
-# n8n integration is planned for a future milestone.
-# See n8n/workflows/README.md for details.
 ```
