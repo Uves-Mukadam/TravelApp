@@ -5,7 +5,7 @@
  * Supports fallback to a mock developer user if no Firebase configuration keys are set.
  */
 
-const admin = require("firebase-admin");
+const { getAuth } = require("firebase-admin/auth");
 
 module.exports = async function authMiddleware(req, res, next) {
   // Graceful health-check & telemetry webhook bypass
@@ -34,8 +34,8 @@ module.exports = async function authMiddleware(req, res, next) {
   }
 
   try {
-    // Attempt verification using Firebase Admin SDK
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    // Attempt verification using Firebase Admin SDK (modular API)
+    const decodedToken = await getAuth().verifyIdToken(token);
     req.user = decodedToken;
     next();
   } catch (error) {

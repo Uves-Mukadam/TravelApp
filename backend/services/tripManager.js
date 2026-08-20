@@ -5,7 +5,7 @@
  * Uses Firebase Firestore with in-memory fallback.
  */
 
-const admin = require("firebase-admin");
+const { getFirestore } = require("firebase-admin/firestore");
 
 let db = null;
 
@@ -14,9 +14,8 @@ let db = null;
  */
 function initialize() {
   try {
-    // Check if Firebase Admin is already initialized (by firebase.js service)
-    const app = admin.app();
-    db = app.firestore();
+    // getFirestore() will throw if no Firebase Admin app was initialized
+    db = getFirestore();
     console.log("[TripManager] Using Firestore.");
     return true;
   } catch {

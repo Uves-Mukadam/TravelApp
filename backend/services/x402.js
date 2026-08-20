@@ -10,7 +10,7 @@
 const algorand = require("./algorand");
 const policyEngine = require("./policyEngine");
 const tripManager = require("./tripManager");
-const admin = require("firebase-admin");
+const { getFirestore } = require("firebase-admin/firestore");
 
 let db = null;
 const memoryStore = {
@@ -22,8 +22,7 @@ const memoryStore = {
  */
 function initialize() {
   try {
-    const app = admin.app();
-    db = app.firestore();
+    db = getFirestore();
     console.log("[x402] Initialized with Firestore.");
   } catch {
     console.log("[x402] Firebase not available. Using in-memory transaction logs.");

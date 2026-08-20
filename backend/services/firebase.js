@@ -6,6 +6,7 @@
  */
 
 const admin = require("firebase-admin");
+const { getFirestore } = require("firebase-admin/firestore");
 
 let db = null;
 let initialized = false;
@@ -22,12 +23,12 @@ function initialize() {
       // Option A: Service account JSON file
       const serviceAccount = require(serviceAccountPath);
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+        credential: admin.cert(serviceAccount),
       });
     } else if (process.env.FIREBASE_PROJECT_ID) {
       // Option B: Individual environment variables
       admin.initializeApp({
-        credential: admin.credential.cert({
+        credential: admin.cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           // Private key comes with escaped newlines from env
@@ -41,7 +42,7 @@ function initialize() {
       return false;
     }
 
-    db = admin.firestore();
+    db = getFirestore();
     initialized = true;
     console.log("[Firebase] Initialized successfully.");
     return true;
