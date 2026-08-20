@@ -18,6 +18,7 @@ const travelPlanner = require("./services/travelPlanner");
 const tripManager = require("./services/tripManager");
 const algorand = require("./services/algorand");
 const x402 = require("./services/x402");
+const authMiddleware = require("./middleware/auth");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +44,9 @@ travelPlanner.initialize();
 tripManager.initialize();
 algorand.initialize();
 x402.initialize();
+
+// --- Authentication Guard ---
+app.use("/api", authMiddleware);
 
 // =============================================
 // ROUTES
@@ -168,7 +172,7 @@ app.post("/api/telemetry", async (req, res) => {
 app.get("/api/incidents", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
-    const incidents = await firebase.getIncidents(limit);
+    const incidents = await firebase.getIncidents(req.user.uid, limit);
     res.json({ incidents });
   } catch (error) {
     console.error("[Incidents] Error:", error);
@@ -189,6 +193,9 @@ app.get("/api/incidents/:id", async (req, res) => {
     const incident = await firebase.getIncident(req.params.id);
     if (!incident) {
       return res.status(404).json({ error: "Incident not found" });
+    }
+    if (incident.userId !== req.user.uid) {
+      return res.status(403).json({ error: "forbidden", message: "Access denied." });
     }
     res.json({ incident });
   } catch (error) {
@@ -212,6 +219,9 @@ app.post("/api/incidents/:id/actions/:actionName/approve", async (req, res) => {
     const incident = await firebase.getIncident(id);
     if (!incident) {
       return res.status(404).json({ error: "Incident not found" });
+    }
+    if (incident.userId !== req.user.uid) {
+      return res.status(403).json({ error: "forbidden" });
     }
 
     const actionIndex = incident.recommendedActions.findIndex(
@@ -331,6 +341,7 @@ app.post("/api/trips", async (req, res) => {
       preferences,
       itinerary,
       status: "planning",
+      userId: req.user.uid,
     });
 
     console.log(`[Trips] Trip created: ${trip.id}`);
@@ -353,7 +364,7 @@ app.get("/api/trips", async (req, res) => {
   try {
     const status = req.query.status || null;
     const limit = parseInt(req.query.limit) || 50;
-    const trips = await tripManager.listTrips(status, limit);
+    const trips = await tripManager.listTrips(req.user.uid, status, limit);
     res.json({ trips });
   } catch (error) {
     console.error("[Trips] Error listing trips:", error);
@@ -375,9 +386,12 @@ app.get("/api/trips/:id", async (req, res) => {
     if (!trip) {
       return res.status(404).json({ error: "Trip not found" });
     }
+    if (trip.userId !== req.user.uid) {
+      return res.status(403).json({ error: "forbidden", message: "Access denied." });
+    }
 
     // Also fetch incidents for this trip
-    const allIncidents = await firebase.getIncidents(200);
+    const allIncidents = await firebase.getIncidents(req.user.uid, 200);
     const tripIncidents = allIncidents.filter((i) => i.tripId === trip.id);
 
     res.json({ trip, incidents: tripIncidents });
@@ -397,10 +411,15 @@ app.get("/api/trips/:id", async (req, res) => {
  */
 app.put("/api/trips/:id", async (req, res) => {
   try {
-    const updated = await tripManager.updateTrip(req.params.id, req.body);
-    if (!updated) {
+    const trip = await tripManager.getTrip(req.params.id);
+    if (!trip) {
       return res.status(404).json({ error: "Trip not found" });
     }
+    if (trip.userId !== req.user.uid) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+
+    const updated = await tripManager.updateTrip(req.params.id, req.body);
     res.json({ trip: updated });
   } catch (error) {
     console.error("[Trips] Error updating trip:", error);
@@ -445,6 +464,10 @@ app.get("/api/wallet/balance", async (req, res) => {
  */
 app.post("/api/trips/:id/payments", async (req, res) => {
   try {
+    const trip = await tripManager.getTrip(req.params.id);
+    if (!trip) return res.status(404).json({ error: "Trip not found" });
+    if (trip.userId !== req.user.uid) return res.status(403).json({ error: "forbidden" });
+
     const { amountINR, category, description } = req.body;
     if (!amountINR || !category) {
       return res.status(400).json({ error: "Required fields: amountINR, category" });
@@ -479,6 +502,10 @@ app.post("/api/trips/:id/payments", async (req, res) => {
  */
 app.get("/api/trips/:id/payments", async (req, res) => {
   try {
+    const trip = await tripManager.getTrip(req.params.id);
+    if (!trip) return res.status(404).json({ error: "Trip not found" });
+    if (trip.userId !== req.user.uid) return res.status(403).json({ error: "forbidden" });
+
     const payments = await x402.getPayments(req.params.id);
     res.json({ payments });
   } catch (error) {

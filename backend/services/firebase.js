@@ -68,8 +68,13 @@ const memoryStore = {
  * @returns {Object} The created incident record
  */
 async function logIncident({ tripId, telemetry, analysis, recommendedActions }) {
+  const tripManager = require("./tripManager");
+  const trip = await tripManager.getTrip(tripId);
+  const userId = trip ? trip.userId : "unknown";
+
   const incident = {
     tripId: tripId || "unknown",
+    userId,
     timestamp: new Date().toISOString(),
     telemetry,
     riskLevel: analysis.riskLevel,
@@ -109,23 +114,24 @@ async function logIncident({ tripId, telemetry, analysis, recommendedActions }) 
  * @param {number} limit - Maximum number of incidents to return
  * @returns {Array} List of incident records
  */
-async function getIncidents(limit = 50) {
+async function getIncidents(userId, limit = 50) {
   if (initialized && db) {
     try {
       const snapshot = await db
         .collection("incidents")
-        .orderBy("timestamp", "desc")
-        .limit(limit)
+        .where("userId", "==", userId)
         .get();
 
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return list.slice(0, limit);
     } catch (error) {
       console.error("[Firebase] Failed to get incidents:", error.message);
-      return memoryStore.incidents.slice(-limit).reverse();
+      return memoryStore.incidents.filter((i) => i.userId === userId).slice(-limit).reverse();
     }
   }
 
-  return memoryStore.incidents.slice(-limit).reverse();
+  return memoryStore.incidents.filter((i) => i.userId === userId).slice(-limit).reverse();
 }
 
 /**

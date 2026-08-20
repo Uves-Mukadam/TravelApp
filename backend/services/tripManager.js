@@ -54,6 +54,7 @@ async function createTrip(tripData) {
     emergencyContacts: tripData.emergencyContacts || [],
     createdAt: new Date().toISOString(),
     agentId: "travel_planner",
+    userId: tripData.userId || null,
   };
 
   if (db) {
@@ -95,21 +96,24 @@ async function getTrip(tripId) {
 /**
  * List all trips, optionally filtered by status.
  */
-async function listTrips(status, limit = 50) {
+async function listTrips(userId, status, limit = 50) {
   if (db) {
     try {
-      let query = db.collection("trips").orderBy("createdAt", "desc").limit(limit);
+      let query = db.collection("trips").where("userId", "==", userId);
       if (status) {
         query = query.where("status", "==", status);
       }
       const snapshot = await query.get();
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Sort in JS to prevent Firebase composite index requirements
+      const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return list.slice(0, limit);
     } catch (error) {
       console.error("[TripManager] Firestore list failed:", error.message);
     }
   }
 
-  let trips = [...memoryStore.trips].reverse();
+  let trips = memoryStore.trips.filter((t) => t.userId === userId).reverse();
   if (status) {
     trips = trips.filter((t) => t.status === status);
   }

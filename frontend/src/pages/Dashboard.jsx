@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { fetchIncidents } from "../services/api";
+import { fetchIncidents, fetchWithAuth } from "../services/api";
 import RiskCard from "../components/RiskCard";
 import MapView from "../components/MapView";
 import { subscribeToIncidents } from "../services/firebase";
@@ -59,7 +59,7 @@ export default function Dashboard() {
   const handleApproveAction = async (actionName) => {
     if (!selectedIncident) return;
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${API_URL}/api/incidents/${selectedIncident.id}/actions/${actionName}/approve`,
         { method: "POST" }
       );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { fetchWithAuth } from "../services/api";
 
 /**
  * TripForm Component
@@ -29,9 +30,8 @@ export default function TripForm({ onTripCreated, onCancel }) {
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/trips`, {
+      const response = await fetchWithAuth(`${API_URL}/api/trips`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           origin: formData.origin,
           destination: formData.destination,

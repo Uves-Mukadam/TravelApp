@@ -8,6 +8,7 @@ import PaymentModal from "../components/PaymentModal";
 import { subscribeToPayments } from "../services/firebase";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { fetchWithAuth } from "../services/api";
 
 /**
  * Format currency in INR.
@@ -50,21 +51,21 @@ export default function TripDetail() {
   async function loadTripData() {
     try {
       // 1. Fetch trip and incidents
-      const resTrip = await fetch(`${API_URL}/api/trips/${id}`);
+      const resTrip = await fetchWithAuth(`${API_URL}/api/trips/${id}`);
       if (!resTrip.ok) throw new Error(`HTTP ${resTrip.status}`);
       const dataTrip = await resTrip.json();
       setTrip(dataTrip.trip);
       setIncidents(dataTrip.incidents || []);
 
       // 2. Fetch payments history
-      const resPayments = await fetch(`${API_URL}/api/trips/${id}/payments`);
+      const resPayments = await fetchWithAuth(`${API_URL}/api/trips/${id}/payments`);
       if (resPayments.ok) {
         const dataPayments = await resPayments.json();
         setPayments(dataPayments.payments || []);
       }
 
       // 3. Fetch traveler wallet status
-      const resWallet = await fetch(`${API_URL}/api/wallet/balance`);
+      const resWallet = await fetchWithAuth(`${API_URL}/api/wallet/balance`);
       if (resWallet.ok) {
         const dataWallet = await resWallet.json();
         setWallet(dataWallet);
@@ -96,9 +97,8 @@ export default function TripDetail() {
 
   async function updateStatus(newStatus) {
     try {
-      const res = await fetch(`${API_URL}/api/trips/${id}`, {
+      const res = await fetchWithAuth(`${API_URL}/api/trips/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

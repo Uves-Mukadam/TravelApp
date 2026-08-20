@@ -1,10 +1,35 @@
 /**
  * API Service
  *
- * Handles communication with the backend Express server.
+ * Handles authenticated communication with the backend Express server.
  */
 
+import { getAuthToken } from "./firebase";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+/**
+ * Helper to perform authenticated HTTP requests to backend.
+ */
+export async function fetchWithAuth(url, options = {}) {
+  const token = await getAuthToken();
+  const headers = {
+    ...options.headers,
+  };
+
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
 
 /**
  * Send telemetry data to the backend for risk analysis.
@@ -13,9 +38,8 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
  * @returns {Object} Risk analysis result with incident ID
  */
 export async function sendTelemetry(telemetry) {
-  const response = await fetch(`${API_URL}/api/telemetry`, {
+  const response = await fetchWithAuth(`${API_URL}/api/telemetry`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(telemetry),
   });
 
@@ -34,7 +58,7 @@ export async function sendTelemetry(telemetry) {
  * @returns {Object} { incidents: [...] }
  */
 export async function fetchIncidents(limit = 50) {
-  const response = await fetch(`${API_URL}/api/incidents?limit=${limit}`);
+  const response = await fetchWithAuth(`${API_URL}/api/incidents?limit=${limit}`);
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);

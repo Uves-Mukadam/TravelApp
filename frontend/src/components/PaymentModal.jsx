@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { fetchWithAuth } from "../services/api";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -19,9 +20,8 @@ export default function PaymentModal({ tripId, onPaymentComplete, onClose }) {
     setSuccess(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/trips/${tripId}/payments`, {
+      const response = await fetchWithAuth(`${API_URL}/api/trips/${tripId}/payments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 

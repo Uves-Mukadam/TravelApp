@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import TripForm from "../components/TripForm";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { fetchWithAuth } from "../services/api";
 
 /**
  * Format currency in INR.
@@ -33,7 +34,7 @@ export default function Trips() {
 
   async function loadTrips() {
     try {
-      const res = await fetch(`${API_URL}/api/trips`);
+      const res = await fetchWithAuth(`${API_URL}/api/trips`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setTrips(data.trips || []);

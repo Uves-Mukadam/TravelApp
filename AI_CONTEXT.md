@@ -87,13 +87,14 @@ Algorand Testnet
 - [x] **Algorand Testnet Dispenser Shortcut**: Copy address button and dispenser link integrated on details card.
 - [x] **n8n Workflow Integration**: Full n8n workflow import config created for visual orchestration.
 - [x] **Firebase Real-time Listeners**: Renders changes reactive on dashboard incident feed and trip payments table.
+- [x] **User Authentication**: Firebase Auth integrations with route guards, login/register UI, and session tokens.
+- [x] **User-Scoped Data Storage**: Multi-user isolation filtering trips, incidents, and payments by Firebase UID.
 
 ### IN PROGRESS
 - (none currently)
 
 ### PLANNED
 - [ ] Emergency contact notification system
-- [ ] User authentication
 - [ ] Historical incident analysis
 
 ---
