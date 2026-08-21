@@ -181,8 +181,12 @@ export default function TripForm({ onTripCreated, onCancel }) {
 
     // Filter out incomplete contacts
     const validContacts = emergencyContacts.filter(
-      (c) => c.name.trim() && c.chatId.trim()
-    );
+      (c) => c.name.trim() && (c.contactId?.trim() || c.chatId?.trim())
+    ).map(c => ({
+      name: c.name,
+      platform: c.platform || "telegram",
+      contactId: c.contactId || c.chatId
+    }));
 
     try {
       const response = await fetchWithAuth(`${API_URL}/api/trips`, {
@@ -546,18 +550,18 @@ export default function TripForm({ onTripCreated, onCancel }) {
               <span
                 style={{ marginLeft: 8, fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }}
               >
-                (Telegram — notified on CRITICAL alert)
+                (Notified on CRITICAL alert)
               </span>
             </label>
             {emergencyContacts.length < 5 && (
-              <button
-                type="button"
-                onClick={addContact}
-                className="btn btn-secondary btn-sm"
-                id="add-contact-btn"
-              >
-                + Add Contact
-              </button>
+               <button
+                 type="button"
+                 onClick={addContact}
+                 className="btn btn-secondary btn-sm"
+                 id="add-contact-btn"
+               >
+                 + Add Contact
+               </button>
             )}
           </div>
 
@@ -566,7 +570,7 @@ export default function TripForm({ onTripCreated, onCancel }) {
               key={idx}
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr auto",
+                gridTemplateColumns: "1fr 100px 1.5fr auto",
                 gap: "var(--space-sm)",
                 marginBottom: "var(--space-sm)",
                 alignItems: "center",
@@ -575,18 +579,27 @@ export default function TripForm({ onTripCreated, onCancel }) {
               <input
                 className="form-input"
                 type="text"
-                placeholder="Contact name (e.g. Mom)"
-                value={contact.name}
+                placeholder="Contact name"
+                value={contact.name || ""}
                 onChange={(e) => handleContactChange(idx, "name", e.target.value)}
                 id={`contact-name-${idx}`}
               />
+              <select
+                className="form-select"
+                value={contact.platform || "telegram"}
+                onChange={(e) => handleContactChange(idx, "platform", e.target.value)}
+                style={{ padding: "8px" }}
+              >
+                <option value="telegram">Telegram</option>
+                <option value="whatsapp">WhatsApp</option>
+              </select>
               <input
                 className="form-input"
                 type="text"
-                placeholder="Telegram Chat ID (e.g. 123456789)"
-                value={contact.chatId}
-                onChange={(e) => handleContactChange(idx, "chatId", e.target.value)}
-                id={`contact-chatid-${idx}`}
+                placeholder={contact.platform === "whatsapp" ? "Phone (e.g. +919876543210)" : "Telegram Chat ID"}
+                value={contact.contactId || contact.chatId || ""}
+                onChange={(e) => handleContactChange(idx, "contactId", e.target.value)}
+                id={`contact-id-${idx}`}
               />
               {emergencyContacts.length > 1 && (
                 <button
@@ -610,16 +623,10 @@ export default function TripForm({ onTripCreated, onCancel }) {
           ))}
 
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0, marginTop: "var(--space-xs)" }}>
-            💡 Contacts must start a chat with your bot first. Get their Chat ID via{" "}
-            <a
-              href="https://t.me/userinfobot"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "var(--accent)" }}
-            >
-              @userinfobot
-            </a>{" "}
-            on Telegram.
+            💡 For <b>Telegram</b>: Contacts must start a chat with your bot first. Get their Chat ID via{" "}
+            <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>@userinfobot</a>.
+            <br />
+            💡 For <b>WhatsApp</b>: Ensure you enter the number with country code (e.g. +91)
           </p>
         </div>
 
