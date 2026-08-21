@@ -313,7 +313,7 @@ app.get("/api/policy", (_req, res) => {
  */
 app.post("/api/trips", async (req, res) => {
   try {
-    const { origin, destination, days, budget, preferences, planTrip: shouldPlan } = req.body;
+    const { origin, destination, days, budget, preferences, planTrip: shouldPlan, originCoords, destCoords } = req.body;
 
     if (!origin || !destination || !days || !budget) {
       return res.status(400).json({
@@ -322,12 +322,14 @@ app.post("/api/trips", async (req, res) => {
     }
 
     console.log(`[Trips] Creating trip: ${origin} → ${destination} (${days} days, ₹${budget})`);
+    if (originCoords) console.log(`[Trips] Pre-supplied origin coords: lat:${originCoords.lat}, lng:${originCoords.lng}`);
+    if (destCoords) console.log(`[Trips] Pre-supplied dest coords: lat:${destCoords.lat}, lng:${destCoords.lng}`);
 
     // Step 1: Optionally generate itinerary
     let itinerary = null;
     if (shouldPlan !== false) {
       console.log("[Trips] Running Travel Planner Agent...");
-      itinerary = await travelPlanner.planTrip({ origin, destination, days, budget, preferences });
+      itinerary = await travelPlanner.planTrip({ origin, destination, days, budget, preferences, originCoords, destCoords });
       console.log(`[Trips] Itinerary generated: "${itinerary.tripName}"`);
     }
 

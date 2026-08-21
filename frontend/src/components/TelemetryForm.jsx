@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { sendTelemetry } from "../services/api";
+import { sendTelemetry, fetchWithAuth } from "../services/api";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -90,7 +90,7 @@ export default function TelemetryForm({ onResult }) {
   useEffect(() => {
     async function loadTrips() {
       try {
-        const res = await fetch(`${API_URL}/api/trips`);
+        const res = await fetchWithAuth(`${API_URL}/api/trips`);
         if (res.ok) {
           const data = await res.json();
           const activeOrPlanning = data.trips || [];
