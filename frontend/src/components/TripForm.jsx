@@ -107,7 +107,13 @@ export default function TripForm({ onTripCreated, onCancel }) {
     days: 3,
     budget: 15000,
     vehicleType: "car",
+    travelerName: "",
   });
+
+  // Emergency contacts: [ { name: string, chatId: string } ]
+  const [emergencyContacts, setEmergencyContacts] = useState([
+    { name: "", chatId: "" },
+  ]);
 
   // Picked coords from map (optional)
   const [originCoords, setOriginCoords] = useState(null);
@@ -150,10 +156,33 @@ export default function TripForm({ onTripCreated, onCancel }) {
     setPickingFor((prev) => (prev === forField ? null : forField));
   }
 
+  function handleContactChange(index, field, value) {
+    setEmergencyContacts((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  }
+
+  function addContact() {
+    if (emergencyContacts.length < 5) {
+      setEmergencyContacts((prev) => [...prev, { name: "", chatId: "" }]);
+    }
+  }
+
+  function removeContact(index) {
+    setEmergencyContacts((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Filter out incomplete contacts
+    const validContacts = emergencyContacts.filter(
+      (c) => c.name.trim() && c.chatId.trim()
+    );
 
     try {
       const response = await fetchWithAuth(`${API_URL}/api/trips`, {
@@ -164,6 +193,8 @@ export default function TripForm({ onTripCreated, onCancel }) {
           days: formData.days,
           budget: formData.budget,
           preferences: { vehicleType: formData.vehicleType },
+          travelerName: formData.travelerName || null,
+          emergencyContacts: validContacts,
           planTrip: true,
           // Send pre-picked coords so the backend skips geocoding
           ...(originCoords && { originCoords }),
@@ -470,6 +501,121 @@ export default function TripForm({ onTripCreated, onCancel }) {
             <option value="train">Train</option>
             <option value="flight">Flight</option>
           </select>
+        </div>
+
+        {/* Traveler Name */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="traveler-name">
+            Traveler Name <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(for SOS alerts)</span>
+          </label>
+          <input
+            id="traveler-name"
+            className="form-input"
+            type="text"
+            value={formData.travelerName}
+            onChange={(e) => handleChange("travelerName", e.target.value)}
+            placeholder="e.g. Uves"
+          />
+        </div>
+
+        {/* Emergency Contacts */}
+        <div
+          style={{
+            background: "rgba(239,68,68,0.05)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            borderRadius: "var(--radius-md)",
+            padding: "var(--space-md)",
+            marginBottom: "var(--space-md)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "var(--space-sm)",
+            }}
+          >
+            <label className="form-label" style={{ margin: 0 }}>
+              🚨 Emergency Contacts
+              <span
+                style={{ marginLeft: 8, fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }}
+              >
+                (Telegram — notified on CRITICAL alert)
+              </span>
+            </label>
+            {emergencyContacts.length < 5 && (
+              <button
+                type="button"
+                onClick={addContact}
+                className="btn btn-secondary btn-sm"
+                id="add-contact-btn"
+              >
+                + Add Contact
+              </button>
+            )}
+          </div>
+
+          {emergencyContacts.map((contact, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr auto",
+                gap: "var(--space-sm)",
+                marginBottom: "var(--space-sm)",
+                alignItems: "center",
+              }}
+            >
+              <input
+                className="form-input"
+                type="text"
+                placeholder="Contact name (e.g. Mom)"
+                value={contact.name}
+                onChange={(e) => handleContactChange(idx, "name", e.target.value)}
+                id={`contact-name-${idx}`}
+              />
+              <input
+                className="form-input"
+                type="text"
+                placeholder="Telegram Chat ID (e.g. 123456789)"
+                value={contact.chatId}
+                onChange={(e) => handleContactChange(idx, "chatId", e.target.value)}
+                id={`contact-chatid-${idx}`}
+              />
+              {emergencyContacts.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeContact(idx)}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid rgba(239,68,68,0.4)",
+                    borderRadius: "6px",
+                    color: "#ef4444",
+                    cursor: "pointer",
+                    padding: "6px 10px",
+                    fontSize: "0.85rem",
+                  }}
+                  id={`remove-contact-${idx}`}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0, marginTop: "var(--space-xs)" }}>
+            💡 Contacts must start a chat with your bot first. Get their Chat ID via{" "}
+            <a
+              href="https://t.me/userinfobot"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--accent)" }}
+            >
+              @userinfobot
+            </a>{" "}
+            on Telegram.
+          </p>
         </div>
 
         {error && (

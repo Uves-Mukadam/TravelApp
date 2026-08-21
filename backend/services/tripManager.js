@@ -40,6 +40,7 @@ const memoryStore = {
 async function createTrip(tripData) {
   const trip = {
     name: tripData.name || `${tripData.origin} → ${tripData.destination}`,
+    travelerName: tripData.travelerName || null,
     origin: tripData.origin,
     originCoords: tripData.originCoords || null,
     destination: tripData.destination,

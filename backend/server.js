@@ -18,6 +18,7 @@ const travelPlanner = require("./services/travelPlanner");
 const tripManager = require("./services/tripManager");
 const algorand = require("./services/algorand");
 const x402 = require("./services/x402");
+const notifier = require("./services/notifier");
 const authMiddleware = require("./middleware/auth");
 
 const app = express();
@@ -44,6 +45,7 @@ travelPlanner.initialize();
 tripManager.initialize();
 algorand.initialize();
 x402.initialize();
+notifier.initialize();
 
 // --- Authentication Guard ---
 app.use("/api", authMiddleware);
@@ -130,6 +132,31 @@ app.post("/api/telemetry", async (req, res) => {
       }
     }
 
+    // Step 3b: Send SOS to emergency contacts if risk is CRITICAL
+    let notificationResults = [];
+    if (analysis.riskLevel === "CRITICAL" && telemetry.tripId) {
+      console.log("[Pipeline] CRITICAL risk — fetching trip emergency contacts for SOS...");
+      try {
+        const trip = await tripManager.getTrip(telemetry.tripId);
+        if (trip && trip.emergencyContacts && trip.emergencyContacts.length > 0) {
+          notificationResults = await notifier.broadcastSOS(trip.emergencyContacts, {
+            travelerName: trip.travelerName || "Your loved one",
+            tripName: trip.name,
+            riskLevel: analysis.riskLevel,
+            riskScore: analysis.riskScore,
+            reason: analysis.reason,
+            keyFactors: analysis.keyFactors,
+            telemetry,
+          });
+          console.log(`[Pipeline] SOS broadcast complete:`, JSON.stringify(notificationResults));
+        } else {
+          console.log("[Pipeline] No emergency contacts on this trip — SOS skipped.");
+        }
+      } catch (notifErr) {
+        console.error("[Pipeline] SOS notification error (non-fatal):", notifErr.message);
+      }
+    }
+
     // Step 4: Log incident to Firebase
     console.log("[Pipeline] Step 4: Logging incident...");
     const incident = await firebase.logIncident({
@@ -150,6 +177,7 @@ app.post("/api/telemetry", async (req, res) => {
       recommendedActions: actionResults,
       urgency: analysis.urgency,
       payment: paymentResult,
+      notifications: notificationResults,
     };
 
     console.log("[Pipeline] Complete. Incident:", incident.id);
@@ -241,6 +269,7 @@ app.post("/api/incidents/:id/actions/:actionName/approve", async (req, res) => {
 
     // If it's a payment action, trigger the payment
     let paymentResult = null;
+    let notificationResults = [];
     if (actionName === "contact_roadside_assistance" && incident.tripId) {
       console.log(`[Approvals] Triggering associated payment for roadside assistance...`);
       paymentResult = await x402.processPayment({
@@ -255,6 +284,25 @@ app.post("/api/incidents/:id/actions/:actionName/approve", async (req, res) => {
           error: "payment_failed",
           message: paymentResult.message || "Failed to process payment during approval",
         });
+      }
+
+      // Also notify emergency contacts when manually approved
+      try {
+        const trip = await tripManager.getTrip(incident.tripId);
+        if (trip && trip.emergencyContacts && trip.emergencyContacts.length > 0) {
+          notificationResults = await notifier.broadcastSOS(trip.emergencyContacts, {
+            travelerName: trip.travelerName || "Your loved one",
+            tripName: trip.name,
+            riskLevel: incident.riskLevel,
+            riskScore: incident.riskScore,
+            reason: `[MANUAL APPROVAL] Traveler or guardian approved roadside assistance. Original alert: ${incident.reason}`,
+            keyFactors: incident.keyFactors || [],
+            telemetry: incident.telemetry || {},
+          });
+          console.log(`[Approvals] SOS notifications sent:`, notificationResults);
+        }
+      } catch (notifErr) {
+        console.error("[Approvals] SOS notification error (non-fatal):", notifErr.message);
       }
     }
 
@@ -313,7 +361,7 @@ app.get("/api/policy", (_req, res) => {
  */
 app.post("/api/trips", async (req, res) => {
   try {
-    const { origin, destination, days, budget, preferences, planTrip: shouldPlan, originCoords, destCoords } = req.body;
+    const { origin, destination, days, budget, preferences, planTrip: shouldPlan, originCoords, destCoords, travelerName, emergencyContacts } = req.body;
 
     if (!origin || !destination || !days || !budget) {
       return res.status(400).json({
@@ -343,6 +391,8 @@ app.post("/api/trips", async (req, res) => {
       preferences,
       itinerary,
       status: "planning",
+      travelerName: travelerName || null,
+      emergencyContacts: emergencyContacts || [],
       userId: req.user.uid,
     });
 
