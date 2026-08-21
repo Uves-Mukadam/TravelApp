@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import ItineraryCard from "../components/ItineraryCard";
 import MapView from "../components/MapView";
 import IncidentList from "../components/IncidentList";
@@ -31,6 +31,7 @@ function formatINR(amount) {
  */
 export default function TripDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [trip, setTrip] = useState(null);
   const [incidents, setIncidents] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -147,6 +148,20 @@ export default function TripDetail() {
   const emergencyLimit = 2000; // default emergency limit
   const percentSpent = Math.min((budgetSpent / emergencyLimit) * 100, 100);
 
+  async function handleDeleteTrip() {
+    if (!window.confirm("Are you sure you want to remove this trip?")) return;
+
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/trips/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      navigate("/trips");
+    } catch (err) {
+      alert("Failed to delete trip: " + err.message);
+    }
+  }
+
   return (
     <div className="page" id="trip-detail-page">
       {/* Header */}
@@ -174,11 +189,17 @@ export default function TripDetail() {
                 color: "var(--text-secondary)",
                 fontSize: "0.95rem",
                 marginTop: "var(--space-xs)",
+                flexWrap: "wrap",
               }}
             >
-              <span>📅 {trip.days} day{trip.days > 1 ? "s" : ""}</span>
-              <span>💰 Budget: {formatINR(trip.budget)}</span>
-              <span>🚗 {trip.preferences?.vehicleType || "car"}</span>
+              <span>{trip.days} day{trip.days > 1 ? "s" : ""}</span>
+              <span>Budget: {formatINR(trip.budget)}</span>
+              <span style={{ textTransform: "capitalize" }}>Mode: {trip.preferences?.vehicleType || "car"}</span>
+              {(trip.travelers?.length > 0 || trip.travelerName) && (
+                <span>
+                  Travelers: {trip.travelers?.length > 0 ? trip.travelers.join(", ") : trip.travelerName}
+                </span>
+              )}
             </div>
           </div>
           <div style={{ display: "flex", gap: "var(--space-sm)" }}>
@@ -188,7 +209,7 @@ export default function TripDetail() {
                 onClick={() => updateStatus("active")}
                 id="start-trip-btn"
               >
-                ▶ Start Trip
+                Start Trip
               </button>
             )}
             {trip.status === "active" && (
@@ -197,9 +218,16 @@ export default function TripDetail() {
                 onClick={() => updateStatus("completed")}
                 id="complete-trip-btn"
               >
-                ✓ Complete Trip
+                Complete Trip
               </button>
             )}
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={handleDeleteTrip}
+              id="delete-trip-btn"
+            >
+              Delete Trip
+            </button>
           </div>
         </div>
       </div>
@@ -207,7 +235,12 @@ export default function TripDetail() {
       {/* Map */}
       {waypoints.length > 0 && (
         <div style={{ marginBottom: "var(--space-xl)" }}>
-          <MapView waypoints={waypoints} incidents={incidents} height={380} />
+          <MapView
+            waypoints={waypoints}
+            incidents={incidents}
+            vehicleType={trip.preferences?.vehicleType || "car"}
+            height={380}
+          />
         </div>
       )}
 
@@ -219,7 +252,6 @@ export default function TripDetail() {
             <ItineraryCard itinerary={trip.itinerary} />
           ) : (
             <div className="card empty-state">
-              <div className="empty-state-icon">📋</div>
               <div className="empty-state-title">No itinerary</div>
               <p>This trip was created without AI planning.</p>
             </div>

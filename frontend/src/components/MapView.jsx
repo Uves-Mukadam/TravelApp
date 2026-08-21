@@ -55,10 +55,16 @@ const ICONS = {
  * @param {Array} props.incidents - Incidents with telemetry [{ riskLevel, telemetry: { latitude, longitude } }]
  * @param {number} [props.height] - Map height in pixels
  */
-export default function MapView({ waypoints = [], incidents = [], height = 400 }) {
+export default function MapView({
+  waypoints = [],
+  incidents = [],
+  vehicleType = "car",
+  height = 400,
+}) {
   const [isLight, setIsLight] = useState(
     () => document.documentElement.getAttribute("data-theme") === "light"
   );
+  const [roadGeometry, setRoadGeometry] = useState([]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -71,6 +77,55 @@ export default function MapView({ waypoints = [], incidents = [], height = 400 }
     });
     return () => observer.disconnect();
   }, []);
+
+  // Check if mode is road-based
+  const isRoadVehicle = ["car", "motorcycle", "bike", "bus", "auto"].includes(
+    vehicleType?.toLowerCase()
+  );
+
+  // Fetch actual road geometry from OSRM for road vehicles
+  useEffect(() => {
+    if (!isRoadVehicle || waypoints.length < 2) {
+      setRoadGeometry([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    async function fetchRoadRoute() {
+      try {
+        // Format coordinates as lng,lat for OSRM API
+        const coordsString = waypoints
+          .map((wp) => `${wp.lng},${wp.lat}`)
+          .join(";");
+
+        const osrmProfile =
+          vehicleType?.toLowerCase() === "bike" ? "bike" : "car";
+        const url = `https://router.project-osrm.org/route/v1/${osrmProfile}/${coordsString}?overview=full&geometries=geojson`;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("OSRM request failed");
+        const data = await res.json();
+
+        if (data.routes && data.routes.length > 0 && isMounted) {
+          // OSRM returns coordinates as [lng, lat], convert to Leaflet [lat, lng]
+          const routeCoords = data.routes[0].geometry.coordinates.map(
+            (c) => [c[1], c[0]]
+          );
+          setRoadGeometry(routeCoords);
+        }
+      } catch (err) {
+        console.warn("[MapView] Road routing failed, falling back to direct polyline:", err);
+        if (isMounted) setRoadGeometry([]);
+      }
+    }
+
+    fetchRoadRoute();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [waypoints, vehicleType, isRoadVehicle]);
 
   // Calculate map center and bounds
   const allPoints = [
@@ -93,8 +148,9 @@ export default function MapView({ waypoints = [], incidents = [], height = 400 }
           allPoints.reduce((s, p) => s + p[1], 0) / allPoints.length,
         ];
 
-  // Route line connecting waypoints
-  const routeLine = waypoints.map((w) => [w.lat, w.lng]);
+  // Fallback straight route line
+  const straightRouteLine = waypoints.map((w) => [w.lat, w.lng]);
+  const activePolyline = roadGeometry.length > 0 ? roadGeometry : straightRouteLine;
 
   const tileUrl = isLight
     ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -118,15 +174,15 @@ export default function MapView({ waypoints = [], incidents = [], height = 400 }
           url={tileUrl}
         />
 
-        {/* Route polyline */}
-        {routeLine.length > 1 && (
+        {/* Route polyline (Actual roads when available, straight line for flights/trains) */}
+        {activePolyline.length > 1 && (
           <Polyline
-            positions={routeLine}
+            positions={activePolyline}
             pathOptions={{
               color: "#38bdf8",
-              weight: 3,
-              opacity: 0.7,
-              dashArray: "8, 8",
+              weight: roadGeometry.length > 0 ? 4 : 3,
+              opacity: 0.85,
+              dashArray: roadGeometry.length > 0 ? undefined : "8, 8",
             }}
           />
         )}

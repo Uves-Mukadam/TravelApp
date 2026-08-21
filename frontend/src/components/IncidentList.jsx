@@ -47,12 +47,11 @@ export default function IncidentList({ incidents, loading }) {
     );
   }
 
-  if (!incidents || incidents.length === 0) {
+  if (incidents.length === 0) {
     return (
-      <div className="empty-state" id="incidents-empty">
-        <div className="empty-state-icon">📋</div>
-        <div className="empty-state-title">No incidents yet</div>
-        <p>Use the Simulator to send telemetry data and create incidents.</p>
+      <div className="empty-state" id="incident-list-empty">
+        <div className="empty-state-title">No incidents logged</div>
+        <p>Telemetry warnings and security incidents will appear here.</p>
       </div>
     );
   }
