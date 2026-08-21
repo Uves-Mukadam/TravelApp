@@ -781,7 +781,30 @@ a:hover {
   margin-bottom: var(--space-sm);
 }
 
-/* --- Responsive --- */
+/* --- Responsive Layout Rules --- */
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-left: var(--space-lg);
+  border-left: 1px solid var(--border-subtle);
+  padding-left: var(--space-lg);
+}
+
+.trip-card-content {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.trip-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
 @media (max-width: 1024px) {
   .simulator-layout {
     grid-template-columns: 1fr;
@@ -794,10 +817,67 @@ a:hover {
   }
 }
 
-@media (max-width: 640px) {
-  .page {
-    padding: var(--space-md);
+@media (max-width: 768px) {
+  .navbar {
+    padding: var(--space-sm) var(--space-md);
   }
+  
+  .navbar-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .navbar-links {
+    width: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .navbar-user {
+    margin-left: 0;
+    border-left: none;
+    padding-left: 0;
+    width: 100%;
+    justify-content: space-between;
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .page {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .page-title {
+    font-size: 1.4rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.88rem;
+  }
+
+  .trip-header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .trip-card-content {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
+  .incident-item {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+
+  .incident-time {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
   .stats-row {
     grid-template-columns: 1fr;
   }
@@ -807,8 +887,13 @@ a:hover {
   .preset-grid {
     grid-template-columns: 1fr;
   }
-  .navbar-inner {
-    flex-direction: column;
-    gap: var(--space-sm);
+  .card {
+    padding: var(--space-md);
+  }
+  .btn {
+    width: 100%;
+  }
+  .btn-sm {
+    width: auto;
   }
 }
