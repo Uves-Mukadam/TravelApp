@@ -27,7 +27,19 @@ const PORT = process.env.PORT || 3001;
 // --- Middleware ---
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      // Allow localhost for development
+      if (origin.includes("localhost")) return callback(null, true);
+      // Allow any Vercel deployment
+      if (origin.endsWith(".vercel.app")) return callback(null, true);
+      // Allow custom CORS_ORIGIN from env
+      const allowed = process.env.CORS_ORIGIN;
+      if (allowed && origin === allowed) return callback(null, true);
+      // Reject others
+      callback(new Error("Not allowed by CORS"));
+    },
   })
 );
 app.use(express.json());
@@ -570,7 +582,7 @@ app.get("/api/trips/:id/payments", async (req, res) => {
 });
 
 // --- Start server ---
-if (require.main === module) {
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`\n🛡️  AI Travel Guardian Backend`);
     console.log(`   Running on http://localhost:${PORT}`);

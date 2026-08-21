@@ -36,6 +36,7 @@ $envContent = Get-Content .env -Raw
 $geminiKey = ""
 $algoMnemonic = ""
 $fbProjectId = ""
+$telegramToken = ""
 
 if ($envContent -match 'GEMINI_API_KEY=(.*)') {
     $geminiKey = $Matches[1].Trim().Trim('"').Trim("'")
@@ -45,6 +46,9 @@ if ($envContent -match 'ALGORAND_MNEMONIC=(.*)') {
 }
 if ($envContent -match 'FIREBASE_PROJECT_ID=(.*)') {
     $fbProjectId = $Matches[1].Trim().Trim('"').Trim("'")
+}
+if ($envContent -match 'TELEGRAM_BOT_TOKEN=(.*)') {
+    $telegramToken = $Matches[1].Trim().Trim('"').Trim("'")
 }
 
 $saJson = Get-Content serviceAccountKey.json -Raw | ConvertFrom-Json
@@ -74,6 +78,8 @@ Add-VercelEnv -name "ALGORAND_MNEMONIC" -value $algoMnemonic
 Add-VercelEnv -name "FIREBASE_PROJECT_ID" -value $fbProjectId
 Add-VercelEnv -name "FIREBASE_CLIENT_EMAIL" -value $fbClientEmail
 Add-VercelEnv -name "FIREBASE_PRIVATE_KEY" -value $fbPrivateKey
+Add-VercelEnv -name "TELEGRAM_BOT_TOKEN" -value $telegramToken
+Add-VercelEnv -name "VERCEL" -value "1"
 
 Write-Host "Deploying backend to production..." -ForegroundColor Cyan
 $deployOutput = npx vercel --prod
