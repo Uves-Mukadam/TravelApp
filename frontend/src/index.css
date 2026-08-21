@@ -409,10 +409,15 @@ a:hover {
   outline: none;
 }
 
+.form-select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
 .form-input:focus,
 .form-select:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
 .form-input::placeholder {

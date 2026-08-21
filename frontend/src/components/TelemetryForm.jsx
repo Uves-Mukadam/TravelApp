@@ -225,7 +225,7 @@ export default function TelemetryForm({ onResult }) {
           </select>
         ) : (
           <div style={{ fontSize: "0.85rem", color: "var(--risk-critical)", padding: "4px 0" }}>
-            ⚠️ No trips found. Create a trip on the **Trips** page first.
+            No trips found. Create a trip on the **Trips** page first.
           </div>
         )}
       </div>

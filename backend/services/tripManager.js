@@ -142,4 +142,27 @@ async function updateTrip(tripId, updates) {
   return memoryStore.trips[idx];
 }
 
-module.exports = { initialize, createTrip, getTrip, listTrips, updateTrip };
+/**
+ * Delete a trip by ID.
+ */
+async function deleteTrip(tripId) {
+  if (db) {
+    try {
+      await db.collection("trips").doc(tripId).delete();
+      console.log(`[TripManager] Trip deleted from Firestore: ${tripId}`);
+      return true;
+    } catch (error) {
+      console.error("[TripManager] Firestore delete failed:", error.message);
+    }
+  }
+
+  const idx = memoryStore.trips.findIndex((t) => t.id === tripId);
+  if (idx !== -1) {
+    memoryStore.trips.splice(idx, 1);
+    console.log(`[TripManager] Trip deleted from memory: ${tripId}`);
+    return true;
+  }
+  return false;
+}
+
+module.exports = { initialize, createTrip, getTrip, listTrips, updateTrip, deleteTrip };

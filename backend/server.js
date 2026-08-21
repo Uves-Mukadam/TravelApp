@@ -494,6 +494,32 @@ app.put("/api/trips/:id", async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/trips/:id
+ *
+ * Delete a trip.
+ */
+app.delete("/api/trips/:id", async (req, res) => {
+  try {
+    const trip = await tripManager.getTrip(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: "Trip not found" });
+    }
+    if (trip.userId !== req.user.uid) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+
+    await tripManager.deleteTrip(req.params.id);
+    res.json({ success: true, message: "Trip deleted successfully" });
+  } catch (error) {
+    console.error("[Trips] Error deleting trip:", error);
+    res.status(500).json({
+      error: "Failed to delete trip.",
+      message: error.message,
+    });
+  }
+});
+
 // =============================================
 // WALLET & PAYMENT ROUTES
 // =============================================

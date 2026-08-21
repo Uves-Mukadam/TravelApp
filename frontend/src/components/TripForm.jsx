@@ -542,7 +542,7 @@ export default function TripForm({ onTripCreated, onCancel }) {
             }}
           >
             <label className="form-label" style={{ margin: 0 }}>
-              🚨 Emergency Contacts
+              Emergency Contacts
               <span
                 style={{ marginLeft: 8, fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }}
               >
@@ -596,21 +596,21 @@ export default function TripForm({ onTripCreated, onCancel }) {
                     background: "transparent",
                     border: "1px solid rgba(239,68,68,0.4)",
                     borderRadius: "6px",
-                    color: "#ef4444",
+                    color: "var(--risk-critical)",
                     cursor: "pointer",
                     padding: "6px 10px",
                     fontSize: "0.85rem",
                   }}
                   id={`remove-contact-${idx}`}
                 >
-                  ✕
+                  Remove
                 </button>
               )}
             </div>
           ))}
 
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0, marginTop: "var(--space-xs)" }}>
-            💡 Contacts must start a chat with your bot first. Get their Chat ID via{" "}
+            Contacts must start a chat with your bot first. Get their Chat ID via{" "}
             <a
               href="https://t.me/userinfobot"
               target="_blank"

@@ -56,6 +56,21 @@ export default function Trips() {
     navigate(`/trips/${trip.id}`);
   }
 
+  async function handleDeleteTrip(e, tripId) {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to remove this trip?")) return;
+
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/trips/${tripId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setTrips((prev) => prev.filter((t) => t.id !== tripId));
+    } catch (err) {
+      alert("Failed to delete trip: " + err.message);
+    }
+  }
+
   return (
     <div className="page" id="trips-page">
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -137,8 +152,8 @@ export default function Trips() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr auto auto",
-                    gap: "var(--space-lg)",
+                    gridTemplateColumns: "1fr auto auto auto",
+                    gap: "var(--space-md)",
                     alignItems: "center",
                   }}
                 >
@@ -153,11 +168,11 @@ export default function Trips() {
                       {trip.name || `${trip.origin} → ${trip.destination}`}
                     </h3>
                     <div style={{ display: "flex", gap: "var(--space-lg)", fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                      <span>📅 {trip.days} day{trip.days > 1 ? "s" : ""}</span>
-                      <span>💰 {formatINR(trip.budget)}</span>
+                      <span>{trip.days} day{trip.days > 1 ? "s" : ""}</span>
+                      <span>Budget: {formatINR(trip.budget)}</span>
                       {trip.createdAt && (
                         <span>
-                          🕐 {new Date(trip.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          Created: {new Date(trip.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                         </span>
                       )}
                     </div>
@@ -177,6 +192,14 @@ export default function Trips() {
                   >
                     {trip.status}
                   </span>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={(e) => handleDeleteTrip(e, trip.id)}
+                    title="Remove Trip"
+                    style={{ padding: "4px 10px", fontSize: "0.75rem" }}
+                  >
+                    Remove
+                  </button>
                   <span style={{ color: "var(--text-muted)", fontSize: "1.2rem" }}>→</span>
                 </div>
               </div>
