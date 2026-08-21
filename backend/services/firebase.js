@@ -21,7 +21,11 @@ function initialize() {
 
     if (serviceAccountPath) {
       // Option A: Service account JSON file
-      const serviceAccount = require(serviceAccountPath);
+      const path = require("path");
+      const resolvedPath = path.isAbsolute(serviceAccountPath)
+        ? serviceAccountPath
+        : path.resolve(__dirname, "..", serviceAccountPath);
+      const serviceAccount = require(resolvedPath);
       admin.initializeApp({
         credential: admin.cert(serviceAccount),
       });
