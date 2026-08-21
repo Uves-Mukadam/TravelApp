@@ -107,8 +107,10 @@ export default function TripForm({ onTripCreated, onCancel }) {
     days: 3,
     budget: 15000,
     vehicleType: "car",
-    travelerName: "",
   });
+
+  // Multiple Travelers: array of strings
+  const [travelers, setTravelers] = useState([""]);
 
   // Emergency contacts: [ { name: string, chatId: string } ]
   const [emergencyContacts, setEmergencyContacts] = useState([
@@ -126,6 +128,24 @@ export default function TripForm({ onTripCreated, onCancel }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  function handleTravelerChange(index, value) {
+    setTravelers((prev) => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+  }
+
+  function addTraveler() {
+    setTravelers((prev) => [...prev, ""]);
+  }
+
+  function removeTraveler(index) {
+    if (travelers.length > 1) {
+      setTravelers((prev) => prev.filter((_, i) => i !== index));
+    }
+  }
 
   function handleChange(field, value) {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -179,6 +199,9 @@ export default function TripForm({ onTripCreated, onCancel }) {
     setLoading(true);
     setError(null);
 
+    // Filter out empty traveler names
+    const validTravelers = travelers.map((t) => t.trim()).filter(Boolean);
+
     // Filter out incomplete contacts
     const validContacts = emergencyContacts.filter(
       (c) => c.name.trim() && c.chatId.trim()
@@ -193,7 +216,8 @@ export default function TripForm({ onTripCreated, onCancel }) {
           days: formData.days,
           budget: formData.budget,
           preferences: { vehicleType: formData.vehicleType },
-          travelerName: formData.travelerName || null,
+          travelerName: validTravelers.join(", ") || null,
+          travelers: validTravelers,
           emergencyContacts: validContacts,
           planTrip: true,
           // Send pre-picked coords so the backend skips geocoding
@@ -508,19 +532,50 @@ export default function TripForm({ onTripCreated, onCancel }) {
           </select>
         </div>
 
-        {/* Traveler Name */}
+        {/* Multiple Travelers */}
         <div className="form-group">
-          <label className="form-label" htmlFor="traveler-name">
-            Traveler Name <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(for SOS alerts)</span>
-          </label>
-          <input
-            id="traveler-name"
-            className="form-input"
-            type="text"
-            value={formData.travelerName}
-            onChange={(e) => handleChange("travelerName", e.target.value)}
-            placeholder="e.g. Uves"
-          />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-xs)" }}>
+            <label className="form-label" style={{ margin: 0 }}>
+              Travelers <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(for SOS alerts & safety monitoring)</span>
+            </label>
+            <button
+              type="button"
+              onClick={addTraveler}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: "3px 10px", fontSize: "0.78rem" }}
+              id="add-traveler-btn"
+            >
+              + Add Traveler
+            </button>
+          </div>
+          {travelers.map((traveler, idx) => (
+            <div key={idx} style={{ display: "flex", gap: "var(--space-sm)", marginBottom: "var(--space-xs)" }}>
+              <input
+                id={`traveler-name-${idx}`}
+                className="form-input"
+                type="text"
+                value={traveler}
+                onChange={(e) => handleTravelerChange(idx, e.target.value)}
+                placeholder={`Traveler ${idx + 1} name (e.g. ${idx === 0 ? "Uves" : "Alex"})`}
+              />
+              {travelers.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeTraveler(idx)}
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    border: "1px solid var(--risk-critical-border)",
+                    color: "var(--risk-critical)",
+                    padding: "4px 10px",
+                    fontSize: "0.78rem",
+                  }}
+                  id={`remove-traveler-${idx}`}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
         </div>
 
         {/* Emergency Contacts */}

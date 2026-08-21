@@ -189,11 +189,17 @@ export default function TripDetail() {
                 color: "var(--text-secondary)",
                 fontSize: "0.95rem",
                 marginTop: "var(--space-xs)",
+                flexWrap: "wrap",
               }}
             >
               <span>{trip.days} day{trip.days > 1 ? "s" : ""}</span>
               <span>Budget: {formatINR(trip.budget)}</span>
               <span style={{ textTransform: "capitalize" }}>Mode: {trip.preferences?.vehicleType || "car"}</span>
+              {(trip.travelers?.length > 0 || trip.travelerName) && (
+                <span>
+                  Travelers: {trip.travelers?.length > 0 ? trip.travelers.join(", ") : trip.travelerName}
+                </span>
+              )}
             </div>
           </div>
           <div style={{ display: "flex", gap: "var(--space-sm)" }}>
