@@ -60,7 +60,7 @@ export default function Trips() {
     <div className="page" id="trips-page">
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <h1 className="page-title">🗺️ Trips</h1>
+          <h1 className="page-title">Trips</h1>
           <p className="page-subtitle">
             Plan and manage your trips with AI assistance.
           </p>
@@ -97,7 +97,7 @@ export default function Trips() {
           }}
         >
           <p style={{ color: "var(--risk-critical)" }}>
-            ⚠ Failed to load trips: {error}
+            Failed to load trips: {error}
           </p>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "var(--space-xs)" }}>
             Make sure the backend is running on{" "}
@@ -117,7 +117,6 @@ export default function Trips() {
       {/* Trip List */}
       {!loading && trips.length === 0 && !showForm && (
         <div className="card empty-state">
-          <div className="empty-state-icon">🗺️</div>
           <div className="empty-state-title">No trips yet</div>
           <p>Click "New Trip" to plan your first AI-assisted trip.</p>
         </div>

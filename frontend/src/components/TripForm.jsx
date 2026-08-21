@@ -234,10 +234,10 @@ export default function TripForm({ onTripCreated, onCancel }) {
   return (
     <div className="card" id="trip-form-card" style={{ animation: "slideUp 0.3s ease" }}>
       <div className="card-header">
-        <h3 className="card-title">🗺️ Plan a New Trip</h3>
+        <h3 className="card-title">Plan a New Trip</h3>
         {onCancel && (
           <button className="btn btn-secondary btn-sm" onClick={onCancel} type="button">
-            ✕ Cancel
+            Cancel
           </button>
         )}
       </div>
@@ -249,8 +249,8 @@ export default function TripForm({ onTripCreated, onCancel }) {
             <label className="form-label" htmlFor="trip-origin">
               Origin
               {originCoords && (
-                <span style={{ marginLeft: 6, fontSize: "0.75rem", color: "#38bdf8" }}>
-                  📍 pinned
+                <span style={{ marginLeft: 6, fontSize: "0.75rem", color: "var(--accent-primary)" }}>
+                  (Pinned)
                 </span>
               )}
             </label>
@@ -268,8 +268,8 @@ export default function TripForm({ onTripCreated, onCancel }) {
             <label className="form-label" htmlFor="trip-destination">
               Destination
               {destCoords && (
-                <span style={{ marginLeft: 6, fontSize: "0.75rem", color: "#818cf8" }}>
-                  📍 pinned
+                <span style={{ marginLeft: 6, fontSize: "0.75rem", color: "var(--accent-secondary)" }}>
+                  (Pinned)
                 </span>
               )}
             </label>
@@ -297,7 +297,7 @@ export default function TripForm({ onTripCreated, onCancel }) {
             id="toggle-map-picker"
             style={{ width: "100%", justifyContent: "center" }}
           >
-            {showMap ? "🗺️ Hide Map Picker" : "📍 Pick Locations on Map"}
+            {showMap ? "Hide Map Picker" : "Pick Locations on Map"}
           </button>
         </div>
 
@@ -329,16 +329,16 @@ export default function TripForm({ onTripCreated, onCancel }) {
                 style={{
                   padding: "5px 14px",
                   borderRadius: "6px",
-                  border: `2px solid ${pickingFor === "origin" ? "#38bdf8" : "rgba(56,189,248,0.3)"}`,
-                  background: pickingFor === "origin" ? "rgba(56,189,248,0.15)" : "transparent",
-                  color: "#38bdf8",
+                  border: `2px solid ${pickingFor === "origin" ? "var(--accent-primary)" : "rgba(2,132,199,0.3)"}`,
+                  background: pickingFor === "origin" ? "rgba(2,132,199,0.15)" : "transparent",
+                  color: "var(--accent-primary)",
                   cursor: "pointer",
                   fontSize: "0.82rem",
                   fontWeight: 600,
                   transition: "all 0.15s",
                 }}
               >
-                {pickingFor === "origin" ? "🔵 Clicking Origin…" : "🔵 Set Origin"}
+                {pickingFor === "origin" ? "Clicking Origin…" : "Set Origin"}
               </button>
               <button
                 type="button"
@@ -347,16 +347,16 @@ export default function TripForm({ onTripCreated, onCancel }) {
                 style={{
                   padding: "5px 14px",
                   borderRadius: "6px",
-                  border: `2px solid ${pickingFor === "destination" ? "#818cf8" : "rgba(129,140,248,0.3)"}`,
-                  background: pickingFor === "destination" ? "rgba(129,140,248,0.15)" : "transparent",
-                  color: "#818cf8",
+                  border: `2px solid ${pickingFor === "destination" ? "var(--accent-secondary)" : "rgba(79,70,229,0.3)"}`,
+                  background: pickingFor === "destination" ? "rgba(79,70,229,0.15)" : "transparent",
+                  color: "var(--accent-secondary)",
                   cursor: "pointer",
                   fontSize: "0.82rem",
                   fontWeight: 600,
                   transition: "all 0.15s",
                 }}
               >
-                {pickingFor === "destination" ? "🟣 Clicking Destination…" : "🟣 Set Destination"}
+                {pickingFor === "destination" ? "Clicking Destination…" : "Set Destination"}
               </button>
 
               {(originCoords || destCoords) && (
@@ -372,14 +372,14 @@ export default function TripForm({ onTripCreated, onCancel }) {
                     marginLeft: "auto",
                     padding: "5px 10px",
                     borderRadius: "6px",
-                    border: "1px solid rgba(239,68,68,0.3)",
+                    border: "1px solid var(--risk-critical-border)",
                     background: "transparent",
-                    color: "#ef4444",
+                    color: "var(--risk-critical)",
                     cursor: "pointer",
                     fontSize: "0.78rem",
                   }}
                 >
-                  ✕ Clear Pins
+                  Clear Pins
                 </button>
               )}
 
@@ -395,8 +395,8 @@ export default function TripForm({ onTripCreated, onCancel }) {
               <div
                 style={{
                   padding: "6px 12px",
-                  background: "rgba(56,189,248,0.08)",
-                  borderTop: "1px solid rgba(56,189,248,0.15)",
+                  background: "var(--bg-glass)",
+                  borderTop: "1px solid var(--border-glass)",
                   fontSize: "0.82rem",
                   color: "var(--text-secondary)",
                   textAlign: "center",
@@ -419,8 +419,13 @@ export default function TripForm({ onTripCreated, onCancel }) {
               key={showMap ? "map-open" : "map-closed"}
             >
               <TileLayer
+                key={document.documentElement.getAttribute("data-theme")}
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url={
+                  document.documentElement.getAttribute("data-theme") === "light"
+                    ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                }
               />
               <MapClickHandler pickingFor={pickingFor} onPick={handleMapPick} />
 
@@ -646,7 +651,7 @@ export default function TripForm({ onTripCreated, onCancel }) {
               <span className="spinner" /> AI is planning your trip...
             </>
           ) : (
-            "🚀 Plan Trip with AI"
+            "Plan Trip with AI"
           )}
         </button>
       </form>

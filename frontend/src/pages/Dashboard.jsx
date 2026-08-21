@@ -117,7 +117,7 @@ export default function Dashboard() {
   return (
     <div className="page" id="dashboard-page">
       <div className="page-header">
-        <h1 className="page-title">📊 Incident Dashboard</h1>
+        <h1 className="page-title">Incident Dashboard</h1>
         <p className="page-subtitle">
           Real-time monitoring of traveler safety incidents.
           {lastRefresh && (
@@ -191,13 +191,13 @@ export default function Dashboard() {
         {/* Left: Incident List */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">🔔 Recent Incidents</h3>
+            <h3 className="card-title">Recent Incidents</h3>
             <button
               className="btn btn-secondary btn-sm"
               onClick={loadIncidents}
               id="refresh-incidents"
             >
-              ↻ Refresh
+              Refresh
             </button>
           </div>
 
@@ -210,7 +210,6 @@ export default function Dashboard() {
 
           {!loading && incidents.length === 0 && (
             <div className="empty-state">
-              <div className="empty-state-icon">📋</div>
               <div className="empty-state-title">No incidents yet</div>
               <p>Use the Simulator to send telemetry and create incidents.</p>
             </div>
@@ -268,7 +267,7 @@ export default function Dashboard() {
               {selectedIncident.telemetry && (
                 <div className="card" style={{ marginTop: "var(--space-lg)" }}>
                   <div className="card-header">
-                    <h4 className="card-title">📡 Raw Telemetry</h4>
+                    <h4 className="card-title">Raw Telemetry</h4>
                     <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
                       Trip: {selectedIncident.tripId || "—"}
                     </span>
@@ -318,10 +317,9 @@ export default function Dashboard() {
               )}
             </div>
           ) : (
-            <div className="card empty-state">
-              <div className="empty-state-icon">👆</div>
+            <div className="card empty-state" id="incident-detail-empty">
               <div className="empty-state-title">Select an incident</div>
-              <p>Click on any incident to view its full details, telemetry data, and recommended actions.</p>
+              <p>Click on any incident from the list to view its full details.</p>
             </div>
           )}
         </div>

@@ -69,19 +69,18 @@ export default function PaymentModal({ tripId, onPaymentComplete, onClose }) {
         id="payment-modal"
       >
         <div className="card-header" style={{ marginBottom: "var(--space-md)" }}>
-          <h3 className="card-title">💳 x402 Micropayment</h3>
+          <h3 className="card-title">x402 Micropayment</h3>
           {!loading && !success && (
             <button className="btn btn-secondary btn-sm" onClick={onClose} type="button">
-              ✕ Close
+              Close
             </button>
           )}
         </div>
 
         {success ? (
           <div style={{ textAlign: "center", padding: "var(--space-md) 0" }}>
-            <div style={{ fontSize: "3rem", marginBottom: "var(--space-md)" }}>✅</div>
-            <h4 style={{ color: "var(--risk-low)", marginBottom: "var(--space-sm)" }}>
-              Payment Settled!
+            <h4 style={{ color: "var(--risk-low)", marginBottom: "var(--space-sm)", fontSize: "1.2rem" }}>
+              Payment Settled Successfully
             </h4>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "var(--space-lg)" }}>
               Transaction verified and completed on Algorand Testnet.

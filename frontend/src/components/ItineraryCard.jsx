@@ -24,7 +24,7 @@ export default function ItineraryCard({ itinerary }) {
       {/* Summary & Cost */}
       <div className="card" style={{ marginBottom: "var(--space-lg)" }}>
         <div className="card-header">
-          <h3 className="card-title">📋 Trip Plan</h3>
+          <h3 className="card-title">Trip Plan</h3>
           <span
             style={{
               fontSize: "1.2rem",
@@ -62,21 +62,23 @@ export default function ItineraryCard({ itinerary }) {
               >
                 <div
                   style={{
-                    fontSize: "1.1rem",
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {formatINR(value)}
-                </div>
-                <div
-                  style={{
                     fontSize: "0.75rem",
                     color: "var(--text-muted)",
-                    textTransform: "capitalize",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
                   }}
                 >
                   {key.replace(/_/g, " ")}
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                    marginTop: "2px",
+                  }}
+                >
+                  {formatINR(value)}
                 </div>
               </div>
             ))}
@@ -88,8 +90,8 @@ export default function ItineraryCard({ itinerary }) {
       {dailyPlans &&
         dailyPlans.map((day) => (
           <div
-            className="card"
             key={day.day}
+            className="card"
             style={{ marginBottom: "var(--space-md)" }}
           >
             <div className="card-header">
@@ -101,58 +103,54 @@ export default function ItineraryCard({ itinerary }) {
                   style={{
                     fontSize: "0.8rem",
                     color: "var(--text-muted)",
+                    background: "var(--bg-glass)",
+                    padding: "var(--space-xs) var(--space-sm)",
+                    borderRadius: "var(--radius-sm)",
                   }}
                 >
-                  🏨 {day.accommodation.name} ({formatINR(day.accommodation.estimatedCost)})
+                  {day.accommodation.name} ({formatINR(day.accommodation.estimatedCost)})
                 </span>
               )}
             </div>
 
-            <p
-              style={{
-                color: "var(--text-secondary)",
-                fontSize: "0.9rem",
-                marginBottom: "var(--space-md)",
-              }}
-            >
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "var(--space-md)" }}>
               {day.description}
             </p>
 
             {/* Activities Timeline */}
-            <div style={{ marginBottom: "var(--space-md)" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--space-sm)",
+                marginBottom: day.safetyCheckpoint ? "var(--space-md)" : 0,
+              }}
+            >
               {day.activities?.map((act, i) => (
                 <div
                   key={i}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "80px 1fr auto",
+                    gridTemplateColumns: "70px 1fr auto",
                     gap: "var(--space-md)",
-                    padding: "var(--space-sm) 0",
-                    borderBottom:
-                      i < day.activities.length - 1
-                        ? "1px solid var(--border-subtle)"
-                        : "none",
                     alignItems: "start",
+                    padding: "var(--space-sm)",
+                    background: "var(--bg-glass)",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: "0.85rem",
                   }}
                 >
                   <span
                     style={{
-                      fontSize: "0.8rem",
-                      fontWeight: 600,
-                      color: "var(--accent-primary)",
                       fontVariantNumeric: "tabular-nums",
+                      color: "var(--accent-primary)",
+                      fontWeight: 500,
                     }}
                   >
                     {act.time}
                   </span>
                   <div>
-                    <div
-                      style={{
-                        fontSize: "0.9rem",
-                        color: "var(--text-primary)",
-                        fontWeight: 500,
-                      }}
-                    >
+                    <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>
                       {act.activity}
                     </div>
                     {act.location && (
@@ -162,7 +160,7 @@ export default function ItineraryCard({ itinerary }) {
                           color: "var(--text-muted)",
                         }}
                       >
-                        📍 {act.location}
+                        Location: {act.location}
                       </div>
                     )}
                     {act.notes && (
@@ -197,15 +195,15 @@ export default function ItineraryCard({ itinerary }) {
             {day.safetyCheckpoint && (
               <div
                 style={{
-                  background: "rgba(34, 197, 94, 0.06)",
-                  border: "1px solid rgba(34, 197, 94, 0.15)",
+                  background: "var(--risk-low-bg)",
+                  border: "1px solid var(--risk-low-border)",
                   borderRadius: "var(--radius-md)",
                   padding: "var(--space-sm) var(--space-md)",
                   fontSize: "0.85rem",
                 }}
               >
                 <span style={{ color: "var(--risk-low)", fontWeight: 600 }}>
-                  🛡️ Safety Checkpoint — {day.safetyCheckpoint.time}
+                  Safety Checkpoint — {day.safetyCheckpoint.time}
                 </span>
                 <span style={{ color: "var(--text-muted)", marginLeft: "var(--space-sm)" }}>
                   {day.safetyCheckpoint.location}
@@ -222,7 +220,7 @@ export default function ItineraryCard({ itinerary }) {
       {safetyTips && safetyTips.length > 0 && (
         <div className="card">
           <div className="card-header">
-            <h4 className="card-title">🛡️ Safety Tips</h4>
+            <h4 className="card-title">Safety Tips</h4>
           </div>
           <ul
             style={{

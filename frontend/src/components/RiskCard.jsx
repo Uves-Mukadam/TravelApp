@@ -28,7 +28,7 @@ export default function RiskCard({ result, onApproveAction }) {
       {/* Header with badge and score */}
       <div className="result-header">
         <span className={`risk-badge ${riskClass}`} id="risk-level-badge">
-          {result.riskLevel === "CRITICAL" ? "🚨" : "⬤"} {result.riskLevel}
+          {result.riskLevel}
         </span>
         {result.urgency && result.urgency !== "none" && (
           <span

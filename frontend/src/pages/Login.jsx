@@ -72,14 +72,11 @@ export default function Login() {
         }}
       >
         <div style={{ textAlign: "center", marginBottom: "var(--space-xl)" }}>
-          <span style={{ fontSize: "3rem", display: "inline-block", marginBottom: "var(--space-xs)" }}>
-            🛡️
-          </span>
           <h2 style={{ fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
             AI Travel Guardian
           </h2>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-            Enter your credentials to secure your travels
+            {isRegister ? "Create an account to get started" : "Enter your credentials to secure your travels"}
           </p>
         </div>
 

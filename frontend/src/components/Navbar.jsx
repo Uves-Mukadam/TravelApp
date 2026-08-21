@@ -10,7 +10,13 @@ import { onAuthChange, logoutUser } from "../services/firebase";
  */
 export default function Navbar() {
   const [user, setUser] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const unsubscribe = onAuthChange((currentUser) => {
@@ -18,6 +24,10 @@ export default function Navbar() {
     });
     return () => unsubscribe();
   }, []);
+
+  function toggleTheme() {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  }
 
   async function handleLogout() {
     try {
@@ -35,7 +45,6 @@ export default function Navbar() {
     <nav className="navbar" id="main-navbar">
       <div className="navbar-inner">
         <div className="navbar-brand">
-          <span className="shield-icon">🛡️</span>
           <span>AI Travel Guardian</span>
         </div>
         <div className="navbar-links">
@@ -69,8 +78,17 @@ export default function Navbar() {
           </NavLink>
           
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)", marginLeft: "var(--space-lg)", borderLeft: "1px solid var(--border-subtle)", paddingLeft: "var(--space-lg)" }}>
-            <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }} title={user.email}>
-              👤 {user.email?.split("@")[0]}
+            <button
+              onClick={toggleTheme}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: "4px 10px", fontSize: "0.8rem" }}
+              id="theme-toggle-btn"
+              title="Toggle Light/Dark Theme"
+            >
+              {theme === "dark" ? "Light Mode" : "Dark Mode"}
+            </button>
+            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }} title={user.email}>
+              {user.email?.split("@")[0]}
             </span>
             <button
               onClick={handleLogout}

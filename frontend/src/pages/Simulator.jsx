@@ -20,7 +20,7 @@ export default function Simulator() {
   return (
     <div className="page" id="simulator-page">
       <div className="page-header">
-        <h1 className="page-title">🧪 Telemetry Simulator</h1>
+        <h1 className="page-title">Telemetry Simulator</h1>
         <p className="page-subtitle">
           Simulate traveler telemetry and observe the AI Guardian's risk
           analysis in real time.
@@ -37,7 +37,6 @@ export default function Simulator() {
             <RiskCard result={result} />
           ) : (
             <div className="card empty-state" id="result-empty">
-              <div className="empty-state-icon">🛡️</div>
               <div className="empty-state-title">Ready to analyze</div>
               <p>
                 Select a scenario preset or customize telemetry data, then
@@ -50,7 +49,7 @@ export default function Simulator() {
           {history.length > 1 && (
             <div className="card" style={{ marginTop: "var(--space-lg)" }}>
               <div className="card-header">
-                <h3 className="card-title">📜 Recent Analyses</h3>
+                <h3 className="card-title">Recent Analyses</h3>
                 <span
                   style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}
                 >

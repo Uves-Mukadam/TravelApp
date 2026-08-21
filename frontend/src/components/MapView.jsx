@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -55,6 +56,22 @@ const ICONS = {
  * @param {number} [props.height] - Map height in pixels
  */
 export default function MapView({ waypoints = [], incidents = [], height = 400 }) {
+  const [isLight, setIsLight] = useState(
+    () => document.documentElement.getAttribute("data-theme") === "light"
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const currentTheme = document.documentElement.getAttribute("data-theme");
+      setIsLight(currentTheme === "light");
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   // Calculate map center and bounds
   const allPoints = [
     ...waypoints.map((w) => [w.lat, w.lng]),
@@ -79,6 +96,10 @@ export default function MapView({ waypoints = [], incidents = [], height = 400 }
   // Route line connecting waypoints
   const routeLine = waypoints.map((w) => [w.lat, w.lng]);
 
+  const tileUrl = isLight
+    ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
   return (
     <div
       className="card"
@@ -92,8 +113,9 @@ export default function MapView({ waypoints = [], incidents = [], height = 400 }
         scrollWheelZoom={true}
       >
         <TileLayer
+          key={tileUrl}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={tileUrl}
         />
 
         {/* Route polyline */}

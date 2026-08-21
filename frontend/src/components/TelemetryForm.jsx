@@ -53,7 +53,7 @@ const PRESETS = {
     },
   },
   emergency: {
-    name: "🚨 Emergency",
+    name: "Emergency",
     desc: "Offline, stopped, low battery, off route",
     data: {
       latitude: 16.9,
@@ -202,13 +202,13 @@ export default function TelemetryForm({ onResult }) {
   return (
     <div className="card" id="telemetry-form-card">
       <div className="card-header" style={{ marginBottom: "var(--space-md)" }}>
-        <h3 className="card-title">📡 Traveler Telemetry</h3>
+        <h3 className="card-title">Traveler Telemetry</h3>
       </div>
 
       {/* Target Trip Dropdown */}
       <div className="form-group" style={{ marginBottom: "var(--space-lg)" }}>
         <label className="form-label" htmlFor="select-target-trip">
-          🎯 Target Simulated Trip
+          Target Simulated Trip
         </label>
         {trips.length > 0 ? (
           <select
@@ -434,7 +434,7 @@ export default function TelemetryForm({ onResult }) {
               <span className="spinner" /> Analyzing...
             </>
           ) : (
-            "🔍 Analyze Risk"
+            "Analyze Risk"
           )}
         </button>
       </form>

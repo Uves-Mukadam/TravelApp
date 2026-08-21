@@ -231,14 +231,14 @@ export default function TripDetail() {
           {/* Wallet & Emergency Budget Progress Card */}
           <div className="card" id="wallet-budget-card">
             <div className="card-header" style={{ marginBottom: "var(--space-sm)" }}>
-              <h3 className="card-title">💳 Wallet & Safety Budget</h3>
+              <h3 className="card-title">Wallet & Safety Budget</h3>
               {trip.status === "active" && (
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => setShowPaymentModal(true)}
                   id="trigger-payment-btn"
                 >
-                  ⚡ Trigger Payment
+                  Trigger Payment
                 </button>
               )}
             </div>
@@ -267,7 +267,7 @@ export default function TripDetail() {
                         }}
                         title="Copy Wallet Address"
                       >
-                        {copying ? "Copied!" : "📋"}
+                        {copying ? "Copied!" : "Copy"}
                       </button>
                     )}
                   </div>
@@ -286,7 +286,7 @@ export default function TripDetail() {
                       rel="noopener noreferrer"
                       style={{ fontSize: "0.75rem", color: "var(--accent-primary)", textDecoration: "underline" }}
                     >
-                      Fund Wallet via Testnet Dispenser ↗
+                      Fund Wallet via Testnet Dispenser
                     </a>
                   </div>
                 )}
@@ -322,7 +322,7 @@ export default function TripDetail() {
           {/* Incidents Card */}
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">🔔 Trip Incidents</h3>
+              <h3 className="card-title">Trip Incidents</h3>
               <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
                 {incidents.length} total
               </span>
@@ -333,7 +333,7 @@ export default function TripDetail() {
           {/* Payments Transaction Feed */}
           <div className="card" id="blockchain-payments-card">
             <div className="card-header">
-              <h3 className="card-title">🔗 Algorand Transaction Proofs</h3>
+              <h3 className="card-title">Algorand Transaction Proofs</h3>
               <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
                 {payments.length} log{payments.length !== 1 ? "s" : ""}
               </span>
