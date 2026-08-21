@@ -570,9 +570,13 @@ app.get("/api/trips/:id/payments", async (req, res) => {
 });
 
 // --- Start server ---
-app.listen(PORT, () => {
-  console.log(`\n🛡️  AI Travel Guardian Backend`);
-  console.log(`   Running on http://localhost:${PORT}`);
-  console.log(`   Webhook: POST http://localhost:${PORT}/api/telemetry`);
-  console.log(`   Health:  GET  http://localhost:${PORT}/api/health\n`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n🛡️  AI Travel Guardian Backend`);
+    console.log(`   Running on http://localhost:${PORT}`);
+    console.log(`   Webhook: POST http://localhost:${PORT}/api/telemetry`);
+    console.log(`   Health:  GET  http://localhost:${PORT}/api/health\n`);
+  });
+}
+
+module.exports = app;
