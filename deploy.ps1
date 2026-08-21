@@ -117,6 +117,13 @@ npx vercel link --yes
 
 # Read frontend env
 $frontendEnv = Get-Content .env -Raw
+
+# Update local .env file with production Vercel backend URL so local build compiles correctly
+if ($frontendEnv -match 'VITE_API_URL=(.*)') {
+    $frontendEnv = $frontendEnv -replace 'VITE_API_URL=.*', "VITE_API_URL=$backendUrl"
+    Set-Content .env $frontendEnv
+}
+
 $viteFbApiKey = ""
 $viteFbAuthDomain = ""
 $viteFbProjectId = ""
