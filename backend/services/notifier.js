@@ -15,38 +15,31 @@
 const https = require("https");
 
 let botToken = null;
-let initializedTelegram = false;
-let twilioConfig = null;
+let initialized = false;
 
 /**
- * Initialize the Telegram and Twilio notifiers.
+ * Initialize the Telegram notifier.
  * Called once at server startup.
  */
 function initialize() {
   botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (botToken) {
-    initializedTelegram = true;
-    console.log("[Notifier] Telegram emergency notifier initialized.");
-  } else {
-    console.warn("[Notifier] TELEGRAM_BOT_TOKEN not set.");
+  if (!botToken) {
+    console.warn(
+      "[Notifier] TELEGRAM_BOT_TOKEN not set. Emergency notifications are disabled."
+    );
+    return false;
   }
-
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_NUMBER) {
-    twilioConfig = {
-      sid: process.env.TWILIO_ACCOUNT_SID,
-      token: process.env.TWILIO_AUTH_TOKEN,
-      from: process.env.TWILIO_WHATSAPP_NUMBER
-    };
-    console.log("[Notifier] Twilio WhatsApp emergency notifier initialized.");
-  } else {
-    console.warn("[Notifier] Twilio WhatsApp variables not fully set.");
-  }
-
-  return initializedTelegram || twilioConfig !== null;
+  initialized = true;
+  console.log("[Notifier] Telegram emergency notifier initialized.");
+  return true;
 }
 
 /**
  * Make a Telegram Bot API call (no external dependencies, pure Node https).
+ *
+ * @param {string} method - Telegram API method name (e.g. "sendMessage")
+ * @param {Object} payload - JSON body to send
+ * @returns {Promise<Object>} Parsed API response
  */
 function telegramRequest(method, payload) {
   return new Promise((resolve, reject) => {
@@ -80,58 +73,24 @@ function telegramRequest(method, payload) {
 }
 
 /**
- * Make a Twilio API call to send a WhatsApp message.
+ * Send an SOS alert to a single Telegram Chat ID.
+ *
+ * @param {string} chatId - Telegram Chat ID of the emergency contact
+ * @param {string} contactName - Display name of the contact
+ * @param {Object} alertData - The SOS payload
+ * @param {string} alertData.travelerName - Name of the traveler
+ * @param {string} alertData.tripName - Name of the trip (e.g. "Mumbai → Goa")
+ * @param {string} alertData.riskLevel - CRITICAL, HIGH, etc.
+ * @param {number} alertData.riskScore - 0–100
+ * @param {string} alertData.reason - AI-generated explanation
+ * @param {string[]} alertData.keyFactors - Key telemetry factors
+ * @param {Object} alertData.telemetry - Raw telemetry data
+ * @returns {Promise<{success: boolean, error?: string}>}
  */
-function twilioWhatsAppRequest(to, message) {
-  return new Promise((resolve, reject) => {
-    const querystring = require('querystring');
-    // Ensure the "to" number has a + prefix
-    const formattedTo = to.startsWith('+') ? to : `+${to}`;
-    
-    const postData = querystring.stringify({
-      To: `whatsapp:${formattedTo}`,
-      From: `whatsapp:${twilioConfig.from}`,
-      Body: message
-    });
-    
-    const options = {
-      hostname: 'api.twilio.com',
-      path: `/2010-04-01/Accounts/${twilioConfig.sid}/Messages.json`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData),
-        'Authorization': 'Basic ' + Buffer.from(`${twilioConfig.sid}:${twilioConfig.token}`).toString('base64')
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch {
-          resolve({ error: "Failed to parse Twilio response" });
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.write(postData);
-    req.end();
-  });
-}
-
-/**
- * Send an SOS alert to a single contact.
- */
-async function sendSOSAlert(contact, alertData) {
-  const { platform = "telegram", contactId, chatId } = contact;
-  const targetId = contactId || chatId; // Handle legacy trips that only have chatId
-  
-  if (!targetId) {
-    return { success: false, error: "No contact ID provided" };
+async function sendSOSAlert(chatId, contactName, alertData) {
+  if (!initialized) {
+    console.warn("[Notifier] Cannot send SOS — notifier not initialized (no bot token).");
+    return { success: false, error: "Notifier not initialized" };
   }
 
   const {
@@ -144,125 +103,88 @@ async function sendSOSAlert(contact, alertData) {
     telemetry = {},
   } = alertData;
 
+  // Build a rich Telegram message using MarkdownV2 escaping
   const riskEmoji = riskLevel === "CRITICAL" ? "🚨" : riskLevel === "HIGH" ? "⚠️" : "ℹ️";
-  const mapLink = telemetry.latitude && telemetry.longitude
+  const mapLink =
+    telemetry.latitude && telemetry.longitude
       ? `https://www.google.com/maps?q=${telemetry.latitude},${telemetry.longitude}`
       : null;
 
-  if (platform === "whatsapp") {
-    if (!twilioConfig) return { success: false, error: "Twilio WhatsApp not configured" };
-    
-    // WhatsApp Markdown (bold is *, italic is _)
-    const lines = [
-      `${riskEmoji} *EMERGENCY ALERT — AI Travel Guardian*`,
-      ``,
-      `*Traveler:* ${travelerName || "Unknown"}`,
-      `*Trip:* ${tripName || "Unknown Trip"}`,
-      `*Risk Level:* ${riskLevel} (Score: ${riskScore}/100)`,
-      ``,
-      `*📋 AI Assessment:*`,
-      `${reason || "No reason provided"}`,
-      ``,
-    ];
+  // Telegram MarkdownV2 requires escaping special chars. Use simpler HTML mode.
+  const lines = [
+    `${riskEmoji} <b>EMERGENCY ALERT — AI Travel Guardian</b>`,
+    ``,
+    `<b>Traveler:</b> ${escapeHtml(travelerName || "Unknown")}`,
+    `<b>Trip:</b> ${escapeHtml(tripName || "Unknown Trip")}`,
+    `<b>Risk Level:</b> ${riskLevel} (Score: ${riskScore}/100)`,
+    ``,
+    `<b>📋 AI Assessment:</b>`,
+    escapeHtml(reason || "No reason provided"),
+    ``,
+  ];
 
-    if (keyFactors.length > 0) {
-      lines.push(`*⚡ Key Factors:*`);
-      keyFactors.forEach((f) => lines.push(`• ${f}`));
-      lines.push(``);
-    }
-
-    if (telemetry.battery !== undefined) lines.push(`*🔋 Battery:* ${telemetry.battery}%`);
-    if (telemetry.networkStatus) lines.push(`*📶 Network:* ${telemetry.networkStatus}`);
-    if (telemetry.movementStatus) lines.push(`*🚗 Movement:* ${telemetry.movementStatus}`);
-    if (telemetry.lastCheckInMinutes !== undefined) lines.push(`*⏱ Last Check-in:* ${telemetry.lastCheckInMinutes} minutes ago`);
-    
-    if (mapLink) {
-      lines.push(``);
-      lines.push(`*📍 Last Known Location:*`);
-      lines.push(`${mapLink}`);
-    }
-
+  if (keyFactors.length > 0) {
+    lines.push(`<b>⚡ Key Factors:</b>`);
+    keyFactors.forEach((f) => lines.push(`• ${escapeHtml(f)}`));
     lines.push(``);
-    lines.push(`_Automated alert sent by AI Travel Guardian at ${new Date().toUTCString()}_`);
-    lines.push(`_An emergency roadside assistance payment of ₹350 has been auto-authorized._`);
+  }
 
-    const message = lines.join("\n");
-    
-    try {
-      const response = await twilioWhatsAppRequest(targetId, message);
-      if (response.sid) {
-        console.log(`[Notifier] WhatsApp SOS sent to ${contact.name} (${targetId})`);
-        return { success: true };
-      } else {
-        console.error(`[Notifier] Twilio API error for ${targetId}:`, response.message);
-        return { success: false, error: response.message };
-      }
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  } 
-  else {
-    // Default to Telegram
-    if (!initializedTelegram) return { success: false, error: "Telegram bot not configured" };
-    
-    const lines = [
-      `${riskEmoji} <b>EMERGENCY ALERT — AI Travel Guardian</b>`,
-      ``,
-      `<b>Traveler:</b> ${escapeHtml(travelerName || "Unknown")}`,
-      `<b>Trip:</b> ${escapeHtml(tripName || "Unknown Trip")}`,
-      `<b>Risk Level:</b> ${riskLevel} (Score: ${riskScore}/100)`,
-      ``,
-      `<b>📋 AI Assessment:</b>`,
-      escapeHtml(reason || "No reason provided"),
-      ``,
-    ];
-
-    if (keyFactors.length > 0) {
-      lines.push(`<b>⚡ Key Factors:</b>`);
-      keyFactors.forEach((f) => lines.push(`• ${escapeHtml(f)}`));
-      lines.push(``);
-    }
-
-    if (telemetry.battery !== undefined) lines.push(`<b>🔋 Battery:</b> ${telemetry.battery}%`);
-    if (telemetry.networkStatus) lines.push(`<b>📶 Network:</b> ${telemetry.networkStatus}`);
-    if (telemetry.movementStatus) lines.push(`<b>🚗 Movement:</b> ${telemetry.movementStatus}`);
-    if (telemetry.lastCheckInMinutes !== undefined) lines.push(`<b>⏱ Last Check-in:</b> ${telemetry.lastCheckInMinutes} minutes ago`);
-    
-    if (mapLink) {
-      lines.push(``);
-      lines.push(`<b>📍 Last Known Location:</b>`);
-      lines.push(`<a href="${mapLink}">Open in Google Maps</a>`);
-    }
-
+  if (telemetry.battery !== undefined) {
+    lines.push(`<b>🔋 Battery:</b> ${telemetry.battery}%`);
+  }
+  if (telemetry.networkStatus) {
+    lines.push(`<b>📶 Network:</b> ${telemetry.networkStatus}`);
+  }
+  if (telemetry.movementStatus) {
+    lines.push(`<b>🚗 Movement:</b> ${telemetry.movementStatus}`);
+  }
+  if (telemetry.lastCheckInMinutes !== undefined) {
+    lines.push(`<b>⏱ Last Check-in:</b> ${telemetry.lastCheckInMinutes} minutes ago`);
+  }
+  if (mapLink) {
     lines.push(``);
-    lines.push(`<i>Automated alert sent by AI Travel Guardian at ${new Date().toUTCString()}</i>`);
-    lines.push(`<i>An emergency roadside assistance payment of ₹350 has been auto-authorized on Algorand.</i>`);
+    lines.push(`<b>📍 Last Known Location:</b>`);
+    lines.push(`<a href="${mapLink}">Open in Google Maps</a>`);
+  }
 
-    const message = lines.join("\n");
+  lines.push(``);
+  lines.push(`<i>Automated alert sent by AI Travel Guardian at ${new Date().toUTCString()}</i>`);
+  lines.push(`<i>An emergency roadside assistance payment of ₹350 has been auto-authorized on Algorand.</i>`);
 
-    try {
-      const response = await telegramRequest("sendMessage", {
-        chat_id: targetId,
-        text: message,
-        parse_mode: "HTML",
-        disable_web_page_preview: false,
-      });
+  const message = lines.join("\n");
 
-      if (response.ok) {
-        console.log(`[Notifier] Telegram SOS sent to ${contact.name} (${targetId})`);
-        return { success: true };
-      } else {
-        console.error(`[Notifier] Telegram API error for ${targetId}:`, response.description);
-        return { success: false, error: response.description };
-      }
-    } catch (error) {
-      return { success: false, error: error.message };
+  try {
+    const response = await telegramRequest("sendMessage", {
+      chat_id: chatId,
+      text: message,
+      parse_mode: "HTML",
+      disable_web_page_preview: false,
+    });
+
+    if (response.ok) {
+      console.log(
+        `[Notifier] SOS sent to contact "${contactName}" (chat_id: ${chatId})`
+      );
+      return { success: true };
+    } else {
+      console.error(
+        `[Notifier] Telegram API error for chat_id ${chatId}:`,
+        response.description
+      );
+      return { success: false, error: response.description };
     }
+  } catch (error) {
+    console.error(`[Notifier] Failed to send to chat_id ${chatId}:`, error.message);
+    return { success: false, error: error.message };
   }
 }
 
 /**
  * Broadcast SOS alerts to ALL emergency contacts on a trip.
+ *
+ * @param {Object[]} emergencyContacts - Array of { name, chatId } objects from trip
+ * @param {Object} alertData - See sendSOSAlert for the shape
+ * @returns {Promise<Object[]>} Array of results per contact
  */
 async function broadcastSOS(emergencyContacts, alertData) {
   if (!emergencyContacts || emergencyContacts.length === 0) {
@@ -270,18 +192,19 @@ async function broadcastSOS(emergencyContacts, alertData) {
     return [];
   }
 
-  console.log(`[Notifier] Broadcasting SOS to ${emergencyContacts.length} emergency contact(s)...`);
+  console.log(
+    `[Notifier] Broadcasting SOS to ${emergencyContacts.length} emergency contact(s)...`
+  );
 
   const results = await Promise.allSettled(
     emergencyContacts.map((contact) =>
-      sendSOSAlert(contact, alertData)
+      sendSOSAlert(contact.chatId, contact.name, alertData)
     )
   );
 
   return results.map((r, i) => ({
     contact: emergencyContacts[i].name,
-    platform: emergencyContacts[i].platform || 'telegram',
-    contactId: emergencyContacts[i].contactId || emergencyContacts[i].chatId,
+    chatId: emergencyContacts[i].chatId,
     ...(r.status === "fulfilled" ? r.value : { success: false, error: r.reason?.message }),
   }));
 }

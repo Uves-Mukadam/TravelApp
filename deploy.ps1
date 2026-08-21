@@ -37,9 +37,6 @@ $geminiKey = ""
 $algoMnemonic = ""
 $fbProjectId = ""
 $telegramToken = ""
-$twilioSid = ""
-$twilioToken = ""
-$twilioNumber = ""
 
 if ($envContent -match 'GEMINI_API_KEY=(.*)') {
     $geminiKey = $Matches[1].Trim().Trim('"').Trim("'")
@@ -52,15 +49,6 @@ if ($envContent -match 'FIREBASE_PROJECT_ID=(.*)') {
 }
 if ($envContent -match 'TELEGRAM_BOT_TOKEN=(.*)') {
     $telegramToken = $Matches[1].Trim().Trim('"').Trim("'")
-}
-if ($envContent -match 'TWILIO_ACCOUNT_SID=(.*)') {
-    $twilioSid = $Matches[1].Trim().Trim('"').Trim("'")
-}
-if ($envContent -match 'TWILIO_AUTH_TOKEN=(.*)') {
-    $twilioToken = $Matches[1].Trim().Trim('"').Trim("'")
-}
-if ($envContent -match 'TWILIO_WHATSAPP_NUMBER=(.*)') {
-    $twilioNumber = $Matches[1].Trim().Trim('"').Trim("'")
 }
 
 $saJson = Get-Content serviceAccountKey.json -Raw | ConvertFrom-Json
@@ -91,9 +79,6 @@ Add-VercelEnv -name "FIREBASE_PROJECT_ID" -value $fbProjectId
 Add-VercelEnv -name "FIREBASE_CLIENT_EMAIL" -value $fbClientEmail
 Add-VercelEnv -name "FIREBASE_PRIVATE_KEY" -value $fbPrivateKey
 Add-VercelEnv -name "TELEGRAM_BOT_TOKEN" -value $telegramToken
-Add-VercelEnv -name "TWILIO_ACCOUNT_SID" -value $twilioSid
-Add-VercelEnv -name "TWILIO_AUTH_TOKEN" -value $twilioToken
-Add-VercelEnv -name "TWILIO_WHATSAPP_NUMBER" -value $twilioNumber
 Add-VercelEnv -name "VERCEL" -value "1"
 
 Write-Host "Deploying backend to production..." -ForegroundColor Cyan
