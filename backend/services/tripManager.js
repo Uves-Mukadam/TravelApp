@@ -52,6 +52,9 @@ async function createTrip(tripData) {
     itinerary: tripData.itinerary || null,
     preferences: tripData.preferences || {},
     emergencyContacts: tripData.emergencyContacts || [],
+    // Algorand LogicSig fields for delegated USDC payments
+    logicSigBase64: tripData.logicSigBase64 || null,
+    travelerWalletAddress: tripData.travelerWalletAddress || null,
     createdAt: new Date().toISOString(),
     agentId: "travel_planner",
     userId: tripData.userId || null,

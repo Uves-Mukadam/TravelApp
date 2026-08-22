@@ -78,8 +78,20 @@ export default function TransactionList({ payments = [] }) {
               {formatINR(p.amount)}
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              ~ {p.algoAmount?.toFixed(2)} ALGO
+              {p.usdcAmount != null ? `~ ${p.usdcAmount} USDC` : `~ ${p.algoAmount?.toFixed(2)} ALGO`}
             </div>
+            {p.method && (
+              <span style={{
+                fontSize: "0.65rem",
+                padding: "1px 6px",
+                borderRadius: "3px",
+                background: p.method === "logicsig" ? "rgba(16,185,129,0.12)" : "rgba(99,102,241,0.12)",
+                color: p.method === "logicsig" ? "#10b981" : "#6366f1",
+                fontWeight: 600,
+              }}>
+                {p.method === "logicsig" ? "LogicSig" : p.method === "simulated" ? "Sim" : "Direct"}
+              </span>
+            )}
           </div>
         </div>
       ))}

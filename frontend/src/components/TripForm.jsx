@@ -121,6 +121,12 @@ export default function TripForm({ onTripCreated, onCancel }) {
   const [originCoords, setOriginCoords] = useState(null);
   const [destCoords, setDestCoords] = useState(null);
 
+  // Algorand Safety Reserve & LogicSig
+  const [mnemonic, setMnemonic] = useState("");
+  const [settingUpReserve, setSettingUpReserve] = useState(false);
+  const [reserveStatus, setReserveStatus] = useState(null);
+  const [reserveError, setReserveError] = useState(null);
+
   // Map UI state
   const [showMap, setShowMap] = useState(false);
   const [pickingFor, setPickingFor] = useState(null); // "origin" | "destination" | null
@@ -184,6 +190,28 @@ export default function TripForm({ onTripCreated, onCancel }) {
     });
   }
 
+  async function handleSetupReserve() {
+    if (!mnemonic.trim() || mnemonic.trim().split(/\s+/).length !== 25) {
+      setReserveError("Please enter a valid 25-word Algorand mnemonic.");
+      return;
+    }
+    setSettingUpReserve(true);
+    setReserveError(null);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/wallet/setup-reserve`, {
+        method: "POST",
+        body: JSON.stringify({ mnemonic: mnemonic.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to setup reserve");
+      setReserveStatus(data);
+    } catch (err) {
+      setReserveError(err.message);
+    } finally {
+      setSettingUpReserve(false);
+    }
+  }
+
   function addContact() {
     if (emergencyContacts.length < 5) {
       setEmergencyContacts((prev) => [...prev, { name: "", chatId: "" }]);
@@ -220,6 +248,11 @@ export default function TripForm({ onTripCreated, onCancel }) {
           travelers: validTravelers,
           emergencyContacts: validContacts,
           planTrip: true,
+          // Algorand LogicSig delegated signing data
+          ...(reserveStatus?.logicSigBase64 && {
+            logicSigBase64: reserveStatus.logicSigBase64,
+            travelerWalletAddress: reserveStatus.walletAddress,
+          }),
           // Send pre-picked coords so the backend skips geocoding
           ...(originCoords && { originCoords }),
           ...(destCoords && { destCoords }),
@@ -676,6 +709,75 @@ export default function TripForm({ onTripCreated, onCancel }) {
             </a>{" "}
             on Telegram.
           </p>
+        </div>
+
+        {/* Algorand Safety Reserve (LogicSig) Section */}
+        <div
+          className="form-group"
+          style={{
+            background: "rgba(16, 185, 129, 0.05)",
+            border: "1px solid rgba(16, 185, 129, 0.25)",
+            borderRadius: "var(--radius-md)",
+            padding: "var(--space-md)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-xs)" }}>
+            <label className="form-label" style={{ margin: 0, color: "#10b981", fontWeight: 600 }}>
+              🛡️ Algorand Safety Reserve (USDC LogicSig)
+            </label>
+            <span style={{ fontSize: "0.72rem", background: "rgba(16,185,129,0.15)", color: "#10b981", padding: "2px 8px", borderRadius: "12px", fontWeight: 600 }}>
+              Non-Custodial
+            </span>
+          </div>
+
+          <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", margin: "0 0 var(--space-sm) 0" }}>
+            Authorizes autonomous emergency micropayments (max 15 USDC / ₹1,245) during CRITICAL alerts via an Algorand Smart Signature. Your mnemonic is discarded immediately after signing.
+          </p>
+
+          {!reserveStatus ? (
+            <div>
+              <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Enter 25-word Algorand Testnet mnemonic (or leave blank for server wallet)"
+                  value={mnemonic}
+                  onChange={(e) => setMnemonic(e.target.value)}
+                  style={{ fontSize: "0.82rem" }}
+                  id="wallet-mnemonic-input"
+                />
+                <button
+                  type="button"
+                  onClick={handleSetupReserve}
+                  disabled={settingUpReserve || !mnemonic.trim()}
+                  className="btn btn-secondary btn-sm"
+                  style={{ whiteSpace: "nowrap", borderColor: "rgba(16,185,129,0.4)", color: "#10b981" }}
+                  id="delegate-logicsig-btn"
+                >
+                  {settingUpReserve ? "Signing..." : "Delegate LogicSig"}
+                </button>
+              </div>
+              {reserveError && (
+                <div style={{ color: "var(--risk-critical)", fontSize: "0.75rem", marginTop: "4px" }}>
+                  ⚠ {reserveError}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ background: "rgba(16,185,129,0.08)", padding: "var(--space-sm)", borderRadius: "var(--radius-sm)", border: "1px solid rgba(16,185,129,0.2)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#10b981" }}>✓ LogicSig Delegated & Verified</span>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>On-Chain Max: 15 USDC</span>
+              </div>
+              <div style={{ fontSize: "0.75rem", fontFamily: "monospace", color: "var(--text-secondary)", wordBreak: "break-all", marginBottom: "4px" }}>
+                Addr: {reserveStatus.walletAddress}
+              </div>
+              <div style={{ display: "flex", gap: "var(--space-md)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                <span>USDC: <b>{reserveStatus.usdcBalance} USDC</b></span>
+                <span>ALGO: <b>{reserveStatus.algoBalance} ALGO</b></span>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (

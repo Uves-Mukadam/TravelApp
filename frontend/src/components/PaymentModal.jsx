@@ -100,9 +100,26 @@ export default function PaymentModal({ tripId, onPaymentComplete, onClose }) {
                 <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>₹{success.amount}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Algorand equivalent</span>
-                <span style={{ color: "var(--text-primary)" }}>{success.algoAmount} ALGO</span>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>USDC Equivalent</span>
+                <span style={{ color: "var(--text-primary)" }}>
+                  {success.usdcAmount != null ? `${success.usdcAmount} USDC` : `${success.algoAmount} ALGO`}
+                </span>
               </div>
+              {success.method && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Method</span>
+                  <span style={{
+                    fontSize: "0.7rem",
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    background: success.method === "logicsig" ? "rgba(16,185,129,0.15)" : "rgba(99,102,241,0.15)",
+                    color: success.method === "logicsig" ? "#10b981" : "#6366f1",
+                    fontWeight: 600,
+                  }}>
+                    {success.method === "logicsig" ? "LogicSig (Delegated)" : success.method === "simulated" ? "Simulated" : "Server Wallet"}
+                  </span>
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Tx ID</span>
                 <a

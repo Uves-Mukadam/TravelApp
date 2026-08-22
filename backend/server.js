@@ -55,7 +55,7 @@ gemini.initialize();
 firebase.initialize();
 travelPlanner.initialize();
 tripManager.initialize();
-algorand.initialize();
+algorand.initialize(); // async — compiles TEAL in background
 x402.initialize();
 notifier.initialize();
 
@@ -373,7 +373,7 @@ app.get("/api/policy", (_req, res) => {
  */
 app.post("/api/trips", async (req, res) => {
   try {
-    const { origin, destination, days, budget, preferences, planTrip: shouldPlan, originCoords, destCoords, travelerName, emergencyContacts } = req.body;
+    const { origin, destination, days, budget, preferences, planTrip: shouldPlan, originCoords, destCoords, travelerName, travelers, emergencyContacts, logicSigBase64, travelerWalletAddress } = req.body;
 
     if (!origin || !destination || !days || !budget) {
       return res.status(400).json({
@@ -393,8 +393,8 @@ app.post("/api/trips", async (req, res) => {
       console.log(`[Trips] Itinerary generated: "${itinerary.tripName}"`);
     }
 
-    // Step 2: Create trip record
-    const trip = await tripManager.createTrip({
+    // If traveler provided wallet info, attach LogicSig to the trip
+    const tripPayload = {
       name: itinerary?.tripName || `${origin} → ${destination}`,
       origin,
       destination,
@@ -404,9 +404,15 @@ app.post("/api/trips", async (req, res) => {
       itinerary,
       status: "planning",
       travelerName: travelerName || null,
+      travelers: travelers || [],
       emergencyContacts: emergencyContacts || [],
+      logicSigBase64: logicSigBase64 || null,
+      travelerWalletAddress: travelerWalletAddress || null,
       userId: req.user.uid,
-    });
+    };
+
+    // Step 2: Create trip record
+    const trip = await tripManager.createTrip(tripPayload);
 
     console.log(`[Trips] Trip created: ${trip.id}`);
     res.json({ trip });
@@ -527,21 +533,85 @@ app.delete("/api/trips/:id", async (req, res) => {
 /**
  * GET /api/wallet/balance
  *
- * Retrieve traveler Algorand address and balance.
+ * Retrieve traveler Algorand address and USDC balance.
  */
 app.get("/api/wallet/balance", async (req, res) => {
   try {
     const address = algorand.getWalletAddress();
-    const balance = address ? await algorand.getBalance(address) : 0;
+    const usdcBalance = address ? await algorand.getUSDCBalance(address) : 0;
+    const algoBalance = address ? await algorand.getAlgoBalance(address) : 0;
     res.json({
       address,
-      balance,
-      unit: "ALGO",
-      simulatedRate: "1 ALGO = ₹100",
+      usdcBalance,
+      algoBalance,
+      usdcAsaId: algorand.USDC_ASA_ID,
+      maxPerTxnUSDC: algorand.MAX_USDC_PER_TXN,
+      exchangeRate: `1 USDC = \u20b9${algorand.INR_PER_USDC}`,
     });
   } catch (error) {
     res.status(500).json({
       error: "Failed to fetch wallet info.",
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/wallet/setup-reserve
+ *
+ * Set up a traveler's safety reserve wallet:
+ *  1. Recover wallet from mnemonic
+ *  2. Opt-in to USDC ASA
+ *  3. Create delegated LogicSig
+ *  4. Return wallet address + LogicSig status
+ *
+ * The mnemonic is used ONLY to sign the LogicSig, then discarded.
+ */
+app.post("/api/wallet/setup-reserve", async (req, res) => {
+  try {
+    const { mnemonic } = req.body;
+    if (!mnemonic || mnemonic.trim().split(/\s+/).length !== 25) {
+      return res.status(400).json({
+        error: "A valid 25-word Algorand mnemonic is required.",
+      });
+    }
+
+    console.log("[Wallet] Setting up safety reserve...");
+
+    // Step 1: Opt-in to USDC
+    const optInResult = await algorand.optInToUSDC(mnemonic.trim());
+    console.log("[Wallet] USDC opt-in:", optInResult.success ? "OK" : optInResult.error);
+
+    // Step 2: Create delegated LogicSig
+    const lsigResult = algorand.createDelegatedLogicSig(mnemonic.trim());
+    if (!lsigResult.success) {
+      return res.status(500).json({
+        error: "Failed to create LogicSig.",
+        message: lsigResult.error,
+      });
+    }
+
+    // Step 3: Get balances
+    const usdcBalance = await algorand.getUSDCBalance(lsigResult.walletAddress);
+    const algoBalance = await algorand.getAlgoBalance(lsigResult.walletAddress);
+
+    // NOTE: The mnemonic is NOT stored anywhere on the server.
+    // Only the pre-signed LogicSig (which is constrained by TEAL rules) is kept.
+
+    res.json({
+      success: true,
+      walletAddress: lsigResult.walletAddress,
+      logicSigBase64: lsigResult.logicSigBase64,
+      usdcBalance,
+      algoBalance,
+      usdcOptedIn: optInResult.success,
+      maxPerTxnUSDC: algorand.MAX_USDC_PER_TXN,
+      message: "Safety reserve configured. LogicSig signed and ready for emergency payments.",
+    });
+  } catch (error) {
+    console.error("[Wallet] Setup reserve error:", error);
+    res.status(500).json({
+      error: "Failed to set up safety reserve.",
       message: error.message,
     });
   }

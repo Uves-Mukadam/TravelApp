@@ -16,6 +16,7 @@
 const DEFAULT_POLICY = {
   emergencyBudget: 2000, // ₹2,000 per trip
   maxSinglePayment: 500, // ₹500 maximum per transaction
+  maxSinglePaymentUSDC: 15, // 15 USDC max (matches on-chain LogicSig constraint)
   allowedCategories: [
     "roadside_assistance",
     "emergency_api",
@@ -136,6 +137,17 @@ function validatePayment({ tripId, amount, category, policy }) {
     detail: withinBudget
       ? undefined
       : `Spending ₹${spent + amount} would exceed budget ₹${policy.emergencyBudget}.`,
+  });
+
+  // Check 4: USDC equivalent within LogicSig limit?
+  const usdcEquivalent = amount / 83; // INR_PER_USDC
+  const withinUSDCLimit = usdcEquivalent <= (policy.maxSinglePaymentUSDC || 15);
+  checks.push({
+    check: "within_usdc_limit",
+    passed: withinUSDCLimit,
+    detail: withinUSDCLimit
+      ? undefined
+      : `USDC equivalent ${usdcEquivalent.toFixed(2)} exceeds LogicSig limit of ${policy.maxSinglePaymentUSDC} USDC.`,
   });
 
   const allPassed = checks.every((c) => c.passed);
