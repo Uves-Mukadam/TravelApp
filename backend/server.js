@@ -126,19 +126,21 @@ app.post("/api/telemetry", async (req, res) => {
 
     // Step 3: Check if emergency payment should be automatically executed via x402
     let paymentResult = null;
-    const isRoadsideAssistanceAuthorized = actionResults.find(
-      (ar) => ar.action === "contact_roadside_assistance" && ar.authorized
+    const hasEmergencyAction = actionResults.some(
+      (ar) => (ar.action === "contact_roadside_assistance" || ar.action === "find_assistance") && ar.authorized
     );
+    const shouldAutoPay = analysis.riskLevel === "CRITICAL" || hasEmergencyAction;
 
-    if (isRoadsideAssistanceAuthorized && telemetry.tripId) {
+    if (shouldAutoPay && telemetry.tripId) {
       console.log("[Pipeline] Auto-authorizing emergency roadside assistance payment via x402...");
       try {
         paymentResult = await x402.processPayment({
           tripId: telemetry.tripId,
-          amountINR: 350, // ₹350 standard roadside assistance charge
+          amountINR: 350, // ₹350 standard roadside assistance charge (4.22 USDC)
           category: "roadside_assistance",
-          description: "AI Guardian automated roadside assistance fee",
+          description: "AI Guardian automated roadside emergency fee",
         });
+        console.log("[Pipeline] Auto-payment processed:", paymentResult.success ? "SUCCESS" : paymentResult.error);
       } catch (err) {
         console.error("[Pipeline] Auto-payment failed:", err.message);
       }

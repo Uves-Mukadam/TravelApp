@@ -172,13 +172,15 @@ async function processPayment({ tripId, amountINR, category, description, receiv
 async function getPayments(tripId) {
   if (db) {
     try {
+      // Query by tripId only to avoid needing a Firestore composite index
       const snapshot = await db
         .collection("payments")
         .where("tripId", "==", tripId)
-        .orderBy("timestamp", "desc")
         .get();
 
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const payments = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      payments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return payments;
     } catch (error) {
       console.error("[x402] Firestore query failed:", error.message);
     }
@@ -186,7 +188,7 @@ async function getPayments(tripId) {
 
   return memoryStore.payments
     .filter((p) => p.tripId === tripId)
-    .reverse();
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
 module.exports = {

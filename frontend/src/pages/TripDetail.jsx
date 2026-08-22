@@ -86,13 +86,19 @@ export default function TripDetail() {
 
     // Subscribe to payments real-time listener
     const unsubscribePayments = subscribeToPayments(id, (realTimePayments) => {
-      setPayments(realTimePayments);
-      // Reload trip details to sync budget meter
-      loadTripData();
+      if (realTimePayments && realTimePayments.length > 0) {
+        setPayments(realTimePayments);
+      }
     });
+
+    // Auto-poll every 4 seconds to sync transactions & incidents live
+    const interval = setInterval(() => {
+      loadTripData();
+    }, 4000);
 
     return () => {
       if (unsubscribePayments) unsubscribePayments();
+      clearInterval(interval);
     };
   }, [id]);
 
