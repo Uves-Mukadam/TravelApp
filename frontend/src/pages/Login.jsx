@@ -73,20 +73,30 @@ export default function Login() {
       >
         <div style={{ textAlign: "center", marginBottom: "var(--space-xl)" }}>
           <img
-            src="/logo.png"
+            src="/logo-dark.png"
             alt="TravelGenie"
             style={{
-              maxWidth: "220px",
-              height: "auto",
-              objectFit: "contain",
-              background: "#ffffff",
-              padding: "6px 14px",
-              borderRadius: "10px",
+              width: "64px",
+              height: "64px",
+              borderRadius: "16px",
+              objectFit: "cover",
               marginBottom: "var(--space-sm)",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+              boxShadow: "0 0 25px rgba(56, 189, 248, 0.25)",
             }}
           />
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "6px" }}>
+          <h2
+            style={{
+              fontSize: "1.7rem",
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              background: "linear-gradient(135deg, #ffffff 45%, #38bdf8 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            TravelGenie
+          </h2>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
             {isRegister ? "Create an account to get started" : "Safer Journeys • Smarter Travel"}
           </p>
         </div>
