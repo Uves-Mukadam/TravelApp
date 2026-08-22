@@ -177,7 +177,7 @@ export default function TripDetail() {
         >
           ← Back to Trips
         </Link>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div className="trip-header-flex">
           <div>
             <h1 className="page-title">
               {trip.name || `${trip.origin} → ${trip.destination}`}
@@ -185,7 +185,7 @@ export default function TripDetail() {
             <div
               style={{
                 display: "flex",
-                gap: "var(--space-lg)",
+                gap: "var(--space-md)",
                 color: "var(--text-secondary)",
                 fontSize: "0.95rem",
                 marginTop: "var(--space-xs)",
@@ -202,7 +202,7 @@ export default function TripDetail() {
               )}
             </div>
           </div>
-          <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+          <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap" }}>
             {trip.status === "planning" && (
               <button
                 className="btn btn-primary btn-sm"

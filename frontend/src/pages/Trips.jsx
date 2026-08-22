@@ -150,12 +150,7 @@ export default function Trips() {
                 id={`trip-${trip.id}`}
               >
                 <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto auto auto",
-                    gap: "var(--space-md)",
-                    alignItems: "center",
-                  }}
+                  className="trip-card-content"
                 >
                   <div>
                     <h3
@@ -167,7 +162,7 @@ export default function Trips() {
                     >
                       {trip.name || `${trip.origin} → ${trip.destination}`}
                     </h3>
-                    <div style={{ display: "flex", gap: "var(--space-lg)", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                    <div style={{ display: "flex", gap: "var(--space-md)", flexWrap: "wrap", fontSize: "0.85rem", color: "var(--text-muted)" }}>
                       <span>{trip.days} day{trip.days > 1 ? "s" : ""}</span>
                       <span>Budget: {formatINR(trip.budget)}</span>
                       {trip.createdAt && (

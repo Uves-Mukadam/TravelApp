@@ -77,7 +77,7 @@ export default function Navbar() {
             Simulator
           </NavLink>
           
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)", marginLeft: "var(--space-lg)", borderLeft: "1px solid var(--border-subtle)", paddingLeft: "var(--space-lg)" }}>
+          <div className="navbar-user">
             <button
               onClick={toggleTheme}
               className="btn btn-secondary btn-sm"
