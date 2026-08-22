@@ -47,7 +47,7 @@ let initialized = false;
 //  3. Amount must be <= 15 USDC (15,000,000 micro-units)
 //  4. Fee must be reasonable (<= 10,000 microAlgo = 0.01 ALGO)
 const TEAL_SOURCE = `#pragma version 8
-// --- AI Travel Guardian: Safety Reserve LogicSig ---
+// --- TripGenie: Safety Reserve LogicSig ---
 // Only allow USDC asset transfers with strict limits.
 
 // Rule 1: Must be an Asset Transfer (type enum 4)
@@ -261,7 +261,7 @@ async function sendUSDCWithLogicSig(logicSigBase64, fromAddress, toAddress, usdc
     const microUSDC = Math.round(usdcAmount * 1_000_000);
 
     const enc = new TextEncoder();
-    const txnNote = enc.encode(note || `AI Travel Guardian: Emergency USDC payment`);
+    const txnNote = enc.encode(note || `TripGenie: Emergency USDC payment`);
 
     // Construct USDC asset transfer transaction
     const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -324,7 +324,7 @@ async function sendPayment(toAddress, usdcAmount, note = "") {
     const receiver = toAddress || serverAccount.addr.toString();
 
     const enc = new TextEncoder();
-    const txnNote = enc.encode(note || `AI Travel Guardian emergency payment`);
+    const txnNote = enc.encode(note || `TripGenie emergency payment`);
 
     // Try USDC asset transfer first
     const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -378,7 +378,7 @@ async function sendAlgoPayment(toAddress, algoAmount, note = "") {
   const amountMicroAlgos = Math.round(algoAmount * 1_000_000);
 
   const enc = new TextEncoder();
-  const txnNote = enc.encode(note || `AI Travel Guardian ALGO payment`);
+  const txnNote = enc.encode(note || `TripGenie ALGO payment`);
 
   const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
     sender: serverAccount.addr,

@@ -73,7 +73,7 @@ export default function Login() {
       >
         <div style={{ textAlign: "center", marginBottom: "var(--space-xl)" }}>
           <h2 style={{ fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
-            AI Travel Guardian
+            TripGenie
           </h2>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
             {isRegister ? "Create an account to get started" : "Enter your credentials to secure your travels"}
@@ -150,7 +150,7 @@ export default function Login() {
 
         <div style={{ textAlign: "center", marginTop: "var(--space-lg)", fontSize: "0.85rem" }}>
           <span style={{ color: "var(--text-muted)" }}>
-            {isRegister ? "Already have an account?" : "New to Travel Guardian?"}{" "}
+            {isRegister ? "Already have an account?" : "New to TripGenie?"}{" "}
           </span>
           <button
             onClick={() => {

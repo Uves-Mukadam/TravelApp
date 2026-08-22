@@ -45,7 +45,7 @@ export default function Navbar() {
     <nav className="navbar" id="main-navbar">
       <div className="navbar-inner">
         <div className="navbar-brand">
-          <span>AI Travel Guardian</span>
+          <span>TripGenie</span>
         </div>
         <div className="navbar-links">
           <NavLink
