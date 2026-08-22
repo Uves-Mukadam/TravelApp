@@ -44,18 +44,19 @@ export default function Navbar() {
   return (
     <nav className="navbar" id="main-navbar">
       <div className="navbar-inner">
-        <div className="navbar-brand" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="navbar-brand" style={{ display: "flex", alignItems: "center" }}>
           <img
             src="/logo.png"
-            alt="TravelGenie Logo"
+            alt="TravelGenie"
             style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
+              height: "34px",
+              width: "auto",
               objectFit: "contain",
+              borderRadius: "6px",
+              background: "#ffffff",
+              padding: "2px 8px",
             }}
           />
-          <span style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>TravelGenie</span>
         </div>
         <div className="navbar-links">
           <NavLink
