@@ -682,7 +682,7 @@ app.get("/api/trips/:id/payments", async (req, res) => {
 // --- Start server ---
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
-    console.log(`\n🛡️  TripGenie Backend`);
+    console.log(`\n🛡️  TravelGenie Backend`);
     console.log(`   Running on http://localhost:${PORT}`);
     console.log(`   Webhook: POST http://localhost:${PORT}/api/telemetry`);
     console.log(`   Health:  GET  http://localhost:${PORT}/api/health\n`);

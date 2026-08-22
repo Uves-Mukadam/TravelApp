@@ -44,8 +44,18 @@ export default function Navbar() {
   return (
     <nav className="navbar" id="main-navbar">
       <div className="navbar-inner">
-        <div className="navbar-brand">
-          <span>TripGenie</span>
+        <div className="navbar-brand" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <img
+            src="/logo.png"
+            alt="TravelGenie Logo"
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "8px",
+              objectFit: "contain",
+            }}
+          />
+          <span style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>TravelGenie</span>
         </div>
         <div className="navbar-links">
           <NavLink

@@ -72,11 +72,22 @@ export default function Login() {
         }}
       >
         <div style={{ textAlign: "center", marginBottom: "var(--space-xl)" }}>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
-            TripGenie
+          <img
+            src="/logo.png"
+            alt="TravelGenie Logo"
+            style={{
+              width: "60px",
+              height: "60px",
+              borderRadius: "12px",
+              objectFit: "contain",
+              marginBottom: "var(--space-sm)",
+            }}
+          />
+          <h2 style={{ fontSize: "1.6rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
+            TravelGenie
           </h2>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-            {isRegister ? "Create an account to get started" : "Enter your credentials to secure your travels"}
+            {isRegister ? "Create an account to get started" : "Safer Journeys • Smarter Travel"}
           </p>
         </div>
 

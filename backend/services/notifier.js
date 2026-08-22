@@ -112,7 +112,7 @@ async function sendSOSAlert(chatId, contactName, alertData) {
 
   // Telegram MarkdownV2 requires escaping special chars. Use simpler HTML mode.
   const lines = [
-    `${riskEmoji} <b>EMERGENCY ALERT — TripGenie</b>`,
+    `${riskEmoji} <b>EMERGENCY ALERT — TravelGenie</b>`,
     ``,
     `<b>Traveler:</b> ${escapeHtml(travelerName || "Unknown")}`,
     `<b>Trip:</b> ${escapeHtml(tripName || "Unknown Trip")}`,
@@ -148,7 +148,7 @@ async function sendSOSAlert(chatId, contactName, alertData) {
   }
 
   lines.push(``);
-  lines.push(`<i>Automated alert sent by TripGenie at ${new Date().toUTCString()}</i>`);
+  lines.push(`<i>Automated alert sent by TravelGenie at ${new Date().toUTCString()}</i>`);
   lines.push(`<i>An emergency roadside assistance payment of ₹350 has been auto-authorized on Algorand.</i>`);
 
   const message = lines.join("\n");
